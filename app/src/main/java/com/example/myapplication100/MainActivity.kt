@@ -55,7 +55,17 @@ fun App() {
 
             composable("booking") { BookingScreen(nav) }
             composable("history") { CenterScreen("ประวัติการรักษา") }
-            composable("profile") { CenterScreen("ข้อมูลส่วนตัว") }
+            composable("profile") {
+                Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Spacer(Modifier.height(50.dp))
+                    Text("ข้อมูลส่วนตัว", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(20.dp))
+
+                    // แสดงข้อมูลของคนๆ นั้นที่เก็บไว้ใน Session
+                    Text("ชื่อ-นามสกุล: ${UserSession.firstName} ${UserSession.lastName}")
+                    Text("เลขบัตรประชาชน: ${UserSession.citizenId}")
+                }
+            }
         }
     }
 }
@@ -94,14 +104,14 @@ fun BottomBar(navController: NavHostController) {
             label = { Text("หน้าแรก") },
             selected = currentRoute?.startsWith("home") == true,
             onClick = {
-                // กันการกดซ้ำหน้าเดิม
-                if (currentRoute?.startsWith("home") != true) {
-                    // ดึงค่า fname/lname เดิมกลับไป (ถ้ามี) หรือไปหน้า home เริ่มต้น
-                    navController.navigate("home/User/ ") {
-                        popUpTo(navController.graph.startDestinationId) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
+
+                val fn = UserSession.firstName.ifEmpty { "User" }
+                val ln = UserSession.lastName.ifEmpty { " " }
+                navController.navigate("home/$fn/$ln") {
+                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                    launchSingleTop = true
+                    restoreState = true
+
                 }
             }
         )
