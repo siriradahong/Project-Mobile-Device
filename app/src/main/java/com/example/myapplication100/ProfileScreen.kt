@@ -21,6 +21,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.myapplication100.DataClass.Appointment_Examination.Examination
+import com.example.myapplication100.LoginRegis.RetrofitClient
+import com.example.myapplication100.LoginRegis.UserSession
 
 @Composable
 fun HeaderTitle(text: String) {
@@ -32,36 +35,25 @@ fun HeaderTitle(text: String) {
         modifier = Modifier.padding(20.dp)
     )
 }
-
 @Composable
 fun ProfileScreen() {
+
     Column(
         Modifier
             .fillMaxSize()
-            .background(Color(0xFF21539D))
+            .verticalScroll(rememberScrollState())
     ) {
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .padding(top = 50.dp, bottom = 20.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text("ข้อมูลส่วนตัว", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        }
 
-        Column(
-            Modifier
-                .fillMaxSize()
-                .clip(RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp))
-                .background(Color.White)
-                .padding(20.dp)
-                .verticalScroll(rememberScrollState())
-        ) {
-            InfoCard()
-            Spacer(Modifier.height(20.dp))
-            HistoryCard()
-            Spacer(Modifier.height(20.dp))
-            MedicineCard()
-        }
+        InfoCard()
+
+        Spacer(Modifier.height(20.dp))
+
+        HistoryScreen(
+            userId = UserSession.iduser
+        )
+
+        Spacer(Modifier.height(20.dp))
+
+        MedicineCard()
     }
 }

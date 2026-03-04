@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SegmentedButtonDefaults.Icon
 import androidx.compose.material3.Text
@@ -26,36 +27,26 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.myapplication100.DataClass.Appointment_Examination.Examination
 
 
 @Composable
-fun HistoryCard() {
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(17.dp))
-            .background(Color(0xFFE5F0FF))
-            .padding(16.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("ประวัติการรักษา", fontSize = 20.sp, fontWeight = FontWeight.Medium, color = Color(0xFF4E4E4E))
-            Spacer(Modifier.weight(1f))
-            Icon(Icons.Default.KeyboardArrowUp, null, tint = Color.Gray)
-        }
+fun HistoryCard(history: Examination) {
 
-        Spacer(Modifier.height(12.dp))
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
 
         Column(
-            Modifier
-                .clip(RoundedCornerShape(17.dp))
-                .background(Color.White)
-                .padding(16.dp)
+            modifier = Modifier.padding(16.dp)
         ) {
-            Text("อาการ : ตัวร้อน คัดจมูก เจ็บคอ ไอมีเสมหะ", color = Color(0xFF4E4E4E))
-            Spacer(Modifier.height(6.dp))
-            Text("ผลวินิจฉัย : ไข้หวัดใหญ่", color = Color(0xFF4E4E4E))
-            Spacer(Modifier.height(6.dp))
-            Text("ยาที่ได้รับ : ยาฆ่าเชื้อ ยาแก้หวัด ยาแก้เจ็บคอ", color = Color(0xFF4E4E4E))
+
+            Text(text = "วันที่: ${history.appointmentDate}")
+            Text(text = "อาการ: ${history.symptom}")
+            Text(text = "วินิจฉัย: ${history.diagnosis ?: "ยังไม่ได้ตรวจ"}")
         }
     }
 }

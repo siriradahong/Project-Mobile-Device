@@ -1,6 +1,7 @@
 package com.example.myapplication100.LoginRegis
 
 object UserSession {
+    var iduser: Int = 0
     var firstName: String = ""
     var lastName: String = ""
     var citizenId: String = ""

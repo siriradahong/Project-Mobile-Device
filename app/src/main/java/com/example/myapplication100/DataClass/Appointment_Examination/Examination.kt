@@ -14,5 +14,9 @@ data class Examination(
     val weight: Double?,
     val height: Double?,
     val temperature: Double?,
-    val total_cost: Double?
+    val total_cost: Double?,
+
+
+    val appointmentDate: String?,   // เพิ่มอันนี้
+    val symptom: String?
 )

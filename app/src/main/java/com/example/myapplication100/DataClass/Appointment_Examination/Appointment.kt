@@ -7,7 +7,7 @@ data class Appointment(
     val Appointment_date: String,
     val time_slot: String,
     val initial_symptom: String?,
-    val queue_number: Int?,
+    val queue_number: String?,
     val check_in_time: String?,
     val status: String, // Pending, Screening, etc.
     val booking_type: String // Online, Walk-in
