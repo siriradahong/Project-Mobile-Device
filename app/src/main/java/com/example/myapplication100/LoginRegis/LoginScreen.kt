@@ -260,6 +260,7 @@ fun LoginScreen(navController: NavHostController) {
                                     val user = response.body()?.user
 
                                     // --- เพิ่มการเก็บข้อมูลลง Session ตรงนี้ ---
+                                    UserSession.iduser = user?.iduser ?: 0
                                     UserSession.firstName = user?.firstname ?: ""
                                     UserSession.lastName = user?.lastname ?: ""
                                     UserSession.citizenId = user?.citizen_id ?: ""
