@@ -11,4 +11,7 @@ data class Appointment(
     val check_in_time: String?,
     val status: String, // Pending, Screening, etc.
     val booking_type: String // Online, Walk-in
+
+
+
 )
