@@ -13,3 +13,5 @@
 .externalNativeBuild
 .cxx
 local.properties
+# ตัวอย่างการใส่ใน .gitignore
+.idea/studiobot.xml

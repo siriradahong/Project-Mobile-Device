@@ -2,22 +2,17 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-
     id("com.google.devtools.ksp")
-
-
 }
 
 android {
     namespace = "com.example.myapplication100"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 35 // ปรับให้เข้ากับมาตรฐานปัจจุบัน (ถ้า 36 ยังไม่ปล่อยตัวเต็ม)
 
     defaultConfig {
         applicationId = "com.example.myapplication100"
         minSdk = 24
-        targetSdk = 36
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -42,6 +37,26 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+
+// ... โค้ดส่วนอื่นๆ คงเดิม ...
+
+    packaging {
+        resources {
+            // แก้ปัญหา INDEX.LIST และ DEPENDENCIES ที่เจอไปก่อนหน้านี้
+            excludes += "/META-INF/INDEX.LIST"
+            excludes += "/META-INF/DEPENDENCIES"
+
+            // แก้ปัญหา io.netty.versions.properties (11 ไฟล์) ที่เจอระลอกล่าสุด
+            excludes += "/META-INF/io.netty.versions.properties"
+
+            // เพิ่มกลุ่มไฟล์มาตรฐานที่มักจะชนกันบ่อยๆ เพื่อป้องกัน Error ในอนาคต
+            excludes += "/META-INF/LICENSE"
+            excludes += "/META-INF/LICENSE.txt"
+            excludes += "/META-INF/NOTICE"
+            excludes += "/META-INF/NOTICE.txt"
+            excludes += "/META-INF/ASL2.0"
+        }
     }
 }
 
@@ -72,6 +87,7 @@ dependencies {
     // Retrofit
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
-    implementation(libs.firebase.appdistribution.gradle)
 
+    // Firebase App Distribution
+    implementation(libs.firebase.appdistribution.gradle)
 }
