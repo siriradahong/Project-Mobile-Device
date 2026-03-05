@@ -1,4 +1,5 @@
 package com.example.myapplication100
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.layout.Box
@@ -28,30 +29,28 @@ import com.example.myapplication100.DataClass.HospitalApiService
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 import com.example.myapplication100.LoginRegis.RetrofitClient
-import com.google.firebase.appdistribution.gradle.ApiService
 
 @Composable
 fun HistoryScreen(userId: Int) {
-
     var historyList by remember { mutableStateOf(listOf<Examination>()) }
 
     LaunchedEffect(Unit) {
         try {
             val response = RetrofitClient.instance.getMedicalHistory(userId)
-
             if (response.isSuccessful) {
                 historyList = response.body() ?: emptyList()
             }
-
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
-    LazyColumn {
-        items(historyList) { history ->
+    Column(modifier = Modifier.padding(8.dp)) {
+        historyList.forEach { history ->
             HistoryCard(history)
+            Spacer(Modifier.height(8.dp))
         }
     }
 }

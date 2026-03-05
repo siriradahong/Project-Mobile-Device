@@ -70,22 +70,7 @@ fun App() {
             composable("history") {
                 HistoryScreen(UserSession.iduser)
             }
-            composable("profile") {
-                Column(
-                    Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-
-                    Spacer(Modifier.height(50.dp))
-
-                    Text("ข้อมูลส่วนตัว", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-
-                    Spacer(Modifier.height(20.dp))
-
-                    Text("ชื่อ-นามสกุล: ${UserSession.firstName} ${UserSession.lastName}")
-                    Text("เลขบัตรประชาชน: ${UserSession.citizenId}")
-                }
-            }
+            composable("profile") { ProfileScreen() }
 
 
         }

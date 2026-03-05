@@ -30,9 +30,8 @@ interface HospitalApiService {
     @GET("patient/{id}/appointments")
     suspend fun getMyAppointments(@Path("id") userId: Int): Response<List<Appointment>>
 
-    @GET("patient/{id}/history")
+    @GET("medical-history/{id}")  // แก้ตรงนี้
     suspend fun getMedicalHistory(@Path("id") userId: Int): Response<List<Examination>>
-
 
     // --- ส่วนของ Assistant & Doctor App ---
 
