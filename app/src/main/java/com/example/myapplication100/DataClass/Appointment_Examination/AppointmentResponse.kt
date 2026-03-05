@@ -5,3 +5,4 @@ data class AppointmentResponse(
     val message: String,
     val id: Int
 )
+

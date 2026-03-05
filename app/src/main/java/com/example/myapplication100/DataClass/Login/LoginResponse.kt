@@ -5,8 +5,3 @@ data class LoginResponse(
     val message: String?,
     val user: UserResponse?
 )
-
-data class User(
-    val iduser: Int,
-    val firstname: String
-)

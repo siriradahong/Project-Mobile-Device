@@ -39,6 +39,11 @@ interface HospitalApiService {
     @GET("appointments/today")
     suspend fun getTodayQueue(): Response<List<Appointment>>
 
+    @GET("appointments/user/{patient_iduser}")
+    suspend fun getAppointmentsByUser(
+        @Path("patient_iduser") patient_iduser: Int
+    ): Response<List<Appointment>>
+
     @POST("appointments")
     suspend fun createAppointment(
         @Body appointment: Appointment

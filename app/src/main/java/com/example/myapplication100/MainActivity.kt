@@ -32,6 +32,11 @@ import com.example.myapplication100.DataClass.Appointment_Examination.Appointmen
 import com.example.myapplication100.DataClass.Appointment_Examination.AppointmentViewModelFactory
 import com.example.myapplication100.LoginRegis.*
 import java.util.Calendar
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import com.example.myapplication100.LoginRegis.UserSession.iduser
 
 
 class MainActivity : ComponentActivity() {
@@ -63,7 +68,7 @@ fun App() {
             composable("home/{fname}/{lname}") { entry ->
                 val fname = entry.arguments?.getString("fname") ?: "User"
                 val lname = entry.arguments?.getString("lname") ?: ""
-                HomeScreen(nav, fname, lname)
+                HomeScreen(nav)
             }
 
             composable("booking") { BookingScreen(nav) }
@@ -84,92 +89,232 @@ fun App() {
 }
 
 @Composable
-fun HomeScreen(nav: NavHostController, fname: String, lname: String) {
-    Column(Modifier.fillMaxSize().background(Color(0xFF21539D))) {
-        // ส่วนหัวแสดงชื่อคน Login
-        Column(Modifier.fillMaxWidth().padding(30.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+fun HomeScreen(nav: NavHostController) {
+    // 1. เตรียม ViewModel และดึงข้อมูล
+    val api = RetrofitClient.instance
+    val repository = AppointmentRepository(api)
+    val factory = AppointmentViewModelFactory(repository)
+    val viewModel: AppointmentViewModel = viewModel(factory = factory)
+
+    val appointments by viewModel.appointments.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.loadAppointments(UserSession.iduser)
+    }
+    val currentQueue = viewModel.currentQueue.value
+    val remaining = viewModel.remainingQueue.value
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF21539D)) // สีน้ำเงินด้านบน
+    ) {
+        // ส่วนหัว "หน้าแรก"
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "หน้าแรก",
+                color = Color.White,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
             )
-        {
-            Text("หน้าแรก", color = Color.White, fontSize = 20.sp)
         }
 
-
-        Column(Modifier.fillMaxSize().background(Color(0xFFF4F4F4), RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp)).padding(20.dp)) {
-            // ... (UI บัตรคิว และ ปุ่มจองคิวเดิมของคุณ) ...
-
-            Text(text = "สมาชิกในครอบครัว", fontSize = 20.sp
-                ,modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Start)
-
-            Spacer(Modifier.height(20.dp))
-
-            Card(
+        // พื้นหลังสีขาวโค้งมน
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = Color.White,
+            shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)
+        ) {
+            LazyColumn(
                 modifier = Modifier
-                    .fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                elevation = CardDefaults.cardElevation(8.dp)
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Column {
+                item { Spacer(modifier = Modifier.height(20.dp)) }
 
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color(0xFFF5A037))
-                            .padding(vertical = 12.dp),
-                        contentAlignment = Alignment.Center
+                // แถวโปรไฟล์และแจ้งเตือน
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(
-                            text = "กำลังตรวจคิว",
-                            color = Color.White,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color(0xFFF2F2F2))
-                            .padding(vertical = 24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-
-                        Text(
-                            text = "A12",
-                            fontSize = 64.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Row {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            // จำลองรูปโปรไฟล์
+                            Box(
+                                modifier = Modifier
+                                    .size(45.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFE0E0E0)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.Groups, contentDescription = null, tint = Color.Gray)
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
                             Text(
-                                text = "เหลือก่อนถึงคิวคุณ ",
-                                fontSize = 16.sp
-                            )
-                            Text(
-                                text = "4",
+                                text = "สมาชิกในครอบครัว",
                                 fontSize = 16.sp,
-                                color = Color.Red,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Medium
                             )
-                            Text(
-                                text = " คิว",
-                                fontSize = 16.sp
+                        }
+
+                        // ไอคอนแจ้งเตือนพร้อมจุดแดง
+                        Box {
+                            Icon(
+                                imageVector = Icons.Default.Notifications,
+                                contentDescription = "Notifications",
+                                tint = Color(0xFF21539D),
+                                modifier = Modifier.size(28.dp)
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(10.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Red)
+                                    .align(Alignment.TopEnd)
                             )
                         }
                     }
                 }
-            }
 
-            Spacer(Modifier.height(20.dp))
+                item { Spacer(modifier = Modifier.height(24.dp)) }
 
-            Card(Modifier.fillMaxWidth().height(100.dp).clickable { nav.navigate("booking") }) {
-                Box(Modifier.fillMaxSize().background(Color(0xFF3F7F8B)), contentAlignment = Alignment.Center) {
-                    Text("จองคิวใหม่", color = Color.White, fontSize = 24.sp)
+                // การ์ดแสดงคิว
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(8.dp, RoundedCornerShape(20.dp)),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White)
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFFFFA726)) // สีส้ม
+                                    .padding(vertical = 10.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "กำลังตรวจคิว",
+                                    color = Color.White,
+                                    fontSize = 24.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            Text(
+                                text = currentQueue, // เลขคิวจริง
+                                fontSize = 100.sp,
+                                fontWeight = FontWeight.Black
+                            )
+
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(text = "เหลือก่อนถึงคิวคุณ ", fontSize = 18.sp)
+                                Text(
+                                    text = "$remaining", // จำนวนคิวที่เหลือจริง
+                                    color = Color.Red,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(text = " คิว", fontSize = 18.sp)
+                            }
+                            Spacer(modifier = Modifier.height(20.dp))
+                        }
+                    }
                 }
+
+                item { Spacer(modifier = Modifier.height(24.dp)) }
+
+                // ปุ่มจองคิวใหม่
+                item {
+                    Button(
+                        onClick = { nav.navigate("booking") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(80.dp)
+                            .shadow(4.dp, RoundedCornerShape(15.dp)),
+                        shape = RoundedCornerShape(15.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3F7F8B)) // สีเขียวหัวเป็ด
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.CalendarMonth,
+                                contentDescription = null,
+                                modifier = Modifier.size(36.dp)
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text(
+                                text = "จองคิวใหม่",
+                                fontSize = 30.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
+                item { Spacer(modifier = Modifier.height(30.dp)) }
+
+                // หัวข้อนัดหมาย
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.LocationOn,
+                            contentDescription = null,
+                            tint = Color.Red,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "นัดหมายของฉัน",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                item { Spacer(modifier = Modifier.height(10.dp)) }
+
+
+                // 3. แสดงรายการนัดหมายจริง
+                items(appointments) { app ->
+                    AppointmentCard("${app.Appointment_date} ${app.time_slot} - ${app.initial_symptom}")
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+
+                item { Spacer(modifier = Modifier.height(100.dp)) } // เผื่อที่ให้ Bottom Bar
             }
+        }
+    }
+}
+@Composable
+fun AppointmentCard(text: String) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(2.dp, RoundedCornerShape(12.dp)),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, Color.LightGray)
+    ) {
+        Box(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = text,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Normal,
+                color = Color.Black
+            )
         }
     }
 }

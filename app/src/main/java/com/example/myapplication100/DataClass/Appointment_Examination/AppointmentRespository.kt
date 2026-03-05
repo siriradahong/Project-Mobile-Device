@@ -11,4 +11,16 @@ class AppointmentRepository(
     ): Response<AppointmentResponse> {
         return api.createAppointment(appointment)
     }
+
+    suspend fun getAppointmentsByUser(patient_iduser: Int): List<Appointment>? {
+        val response = api.getAppointmentsByUser(patient_iduser)
+
+        return if (response.isSuccessful) {
+            response.body()
+        } else {
+            null
+        }
+    }
+
+
 }
