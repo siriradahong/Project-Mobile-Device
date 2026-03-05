@@ -90,4 +90,5 @@ dependencies {
 
     // Firebase App Distribution
     implementation(libs.firebase.appdistribution.gradle)
+    implementation(libs.androidx.runtime)
 }

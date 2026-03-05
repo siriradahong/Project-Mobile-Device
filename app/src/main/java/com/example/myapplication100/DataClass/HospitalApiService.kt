@@ -1,5 +1,6 @@
 package com.example.myapplication100.DataClass
 
+import androidx.compose.runtime.remember
 import com.example.myapplication100.DataClass.Appointment_Examination.*
 import com.example.myapplication100.DataClass.Login.*
 import com.example.myapplication100.DataClass.Medicine_Prescription.*
@@ -7,6 +8,8 @@ import com.example.myapplication100.DataClass.User_Roles.*
 import retrofit2.Response
 import retrofit2.http.*
 import com.example.myapplication100.DataClass.Login.*
+import com.example.myapplication100.DataClass.Appointment_Examination.CurrentMedicine
+
 
 
 interface HospitalApiService {
@@ -32,6 +35,11 @@ interface HospitalApiService {
 
     @GET("medical-history/{id}")  // แก้ตรงนี้
     suspend fun getMedicalHistory(@Path("id") userId: Int): Response<List<Examination>>
+
+    // HospitalApiService.kt
+    @GET("current-medicine/{id}")
+    suspend fun getCurrentMedicine(@Path("id") userId: Int): Response<List<CurrentMedicine>>
+
 
     // --- ส่วนของ Assistant & Doctor App ---
 

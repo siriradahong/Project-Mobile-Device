@@ -84,7 +84,7 @@ fun ProfileScreen() {
 
         // รายการยาปัจจุบัน
         ExpandableCard(title = "รายการยาปัจจุบัน") {
-            MedicineCard()
+            MedicineCard(userId = userId)
         }
 
         Spacer(Modifier.height(24.dp))
