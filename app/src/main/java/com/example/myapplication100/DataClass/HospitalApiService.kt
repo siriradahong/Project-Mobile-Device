@@ -40,6 +40,9 @@ interface HospitalApiService {
     @GET("current-medicine/{id}")
     suspend fun getCurrentMedicine(@Path("id") userId: Int): Response<List<CurrentMedicine>>
 
+    @GET("patient-info/{id}")
+    suspend fun getPatientInfo(@Path("id") userId: Int): Response<PatientInfo>
+
 
     // --- ส่วนของ Assistant & Doctor App ---
 

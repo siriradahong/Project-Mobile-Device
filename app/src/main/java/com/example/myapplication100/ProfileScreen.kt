@@ -60,8 +60,11 @@ fun ProfileScreen() {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("ข้อมูลส่วนตัว", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 Spacer(Modifier.height(8.dp))
-                Text(UserSession.firstName ?: "", fontSize = 18.sp, color = Color.White)
-                Text(UserSession.lastName ?: "", fontSize = 18.sp, color = Color.White)
+                Text(
+                    text = "${UserSession.firstName ?: ""} ${UserSession.lastName ?: ""}",
+                    fontSize = 18.sp,
+                    color = Color.White
+                )
                 Text(UserSession.citizenId ?: "", fontSize = 14.sp, color = Color.White.copy(alpha = 0.8f))
             }
         }
@@ -70,9 +73,8 @@ fun ProfileScreen() {
 
         // ข้อมูลส่วนตัว
         ExpandableCard(title = "ข้อมูลส่วนตัว") {
-            InfoCard()
+            InfoCard(userId = userId)
         }
-
         Spacer(Modifier.height(12.dp))
 
         // ประวัติการรักษา
