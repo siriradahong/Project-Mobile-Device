@@ -14,10 +14,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SegmentedButtonDefaults.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,38 +30,50 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.myapplication100.DataClass.Medicine_Prescription.Medicine
+import com.example.myapplication100.LoginRegis.RetrofitClient
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import com.example.myapplication100.DataClass.Appointment_Examination.CurrentMedicine
 
 
 @Composable
-fun MedicineCard() {
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(17.dp))
-            .background(Color(0xFFE5EFFF))
+fun MedicineCard(userId: Int) {
 
-            .padding(16.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("รายการยาปัจจุบัน", fontSize = 20.sp, fontWeight = FontWeight.Medium, color = Color(0xFF4E4E4E))
-            Spacer(Modifier.weight(1f))
-            Icon(Icons.Default.KeyboardArrowUp, null, tint = Color.Gray)
+    var medicines by remember { mutableStateOf<List<CurrentMedicine>>(emptyList()) }
+
+    LaunchedEffect(Unit) {
+        try {
+            val response = RetrofitClient.instance.getCurrentMedicine(userId)
+            if (response.isSuccessful) {
+                medicines = response.body() ?: emptyList()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
+    }
 
-        Spacer(Modifier.height(12.dp))
-
-        Column(
-            Modifier
-                .fillMaxWidth(0.85f)
-                .clip(RoundedCornerShape(17.dp))
-                .background(Color.White)
-                .padding(16.dp)
-        ){
-            Text("ยาฆ่าเชื้อ :", fontWeight = FontWeight.Medium)
-            Text("ทานก่อนอาหาร เช้า/กลางวัน/เย็น")
-            Spacer(Modifier.height(8.dp))
-            Text("ยาแก้เจ็บคอ :", fontWeight = FontWeight.Medium)
-            Text("ทานก่อนอาหาร เช้า/กลางวัน/เย็น")
+    Column(modifier = Modifier.padding(8.dp)) {
+        if (medicines.isEmpty()) {
+            Text("ไม่มีรายการยา", color = Color.Gray, modifier = Modifier.padding(8.dp))
+        } else {
+            medicines.forEach { med: CurrentMedicine ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(med.medicine_name, fontWeight = FontWeight.Bold)
+                        Text("ขนาด: ${med.dosage} | ${med.frequency}")
+                        Text("วิธีทาน: ${med.instruction}")
+                    }
+                }
+                Spacer(Modifier.height(4.dp))
+            }
         }
     }
 }

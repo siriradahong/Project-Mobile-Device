@@ -72,19 +72,15 @@ fun App() {
             }
 
             composable("booking") { BookingScreen(nav) }
-            composable("history") { CenterScreen("ประวัติการรักษา") }
-            composable("profile") {
-                Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Spacer(Modifier.height(50.dp))
-                    Text("ข้อมูลส่วนตัว", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(20.dp))
-
-                    // แสดงข้อมูลของคนๆ นั้นที่เก็บไว้ใน Session
-                    Text("ชื่อ-นามสกุล: ${UserSession.firstName} ${UserSession.lastName}")
-                    Text("เลขบัตรประชาชน: ${UserSession.citizenId}")
-                }
+            composable("history") {
+                HistoryScreen(UserSession.iduser)
             }
+            composable("profile") { ProfileScreen() }
+
+
         }
+
+
     }
 }
 

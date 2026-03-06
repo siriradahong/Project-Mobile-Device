@@ -1,5 +1,6 @@
 package com.example.myapplication100.DataClass
 
+import androidx.compose.runtime.remember
 import com.example.myapplication100.DataClass.Appointment_Examination.*
 import com.example.myapplication100.DataClass.Login.*
 import com.example.myapplication100.DataClass.Medicine_Prescription.*
@@ -7,6 +8,9 @@ import com.example.myapplication100.DataClass.User_Roles.*
 import retrofit2.Response
 import retrofit2.http.*
 import com.example.myapplication100.DataClass.Login.*
+import com.example.myapplication100.DataClass.Appointment_Examination.CurrentMedicine
+import com.example.myapplication100.DataClass.Family.FamilyMemberDetail
+import com.example.myapplication100.DataClass.Family.FamilyResponse
 
 
 interface HospitalApiService {
@@ -30,8 +34,15 @@ interface HospitalApiService {
     @GET("patient/{id}/appointments")
     suspend fun getMyAppointments(@Path("id") userId: Int): Response<List<Appointment>>
 
-    @GET("patient/{id}/history")
+    @GET("medical-history/{id}")  // แก้ตรงนี้
     suspend fun getMedicalHistory(@Path("id") userId: Int): Response<List<Examination>>
+
+    // HospitalApiService.kt
+    @GET("current-medicine/{id}")
+    suspend fun getCurrentMedicine(@Path("id") userId: Int): Response<List<CurrentMedicine>>
+
+    @GET("patient-info/{id}")
+    suspend fun getPatientInfo(@Path("id") userId: Int): Response<PatientInfo>
 
 
     // --- ส่วนของ Assistant & Doctor App ---
@@ -58,5 +69,32 @@ interface HospitalApiService {
     @POST("examination/diagnose")
     suspend fun saveTreatment(@Body treatment: Examination): Response<Unit>
 
+    @GET("family/all-groups")
+    suspend fun getAllFamilies(): Response<List<FamilyResponse>>
+
+    @POST("family/create")
+    suspend fun createFamily(@Body request: Map<String, String>): Response<Map<String, Any>>
+
+    // แก้ไข: ต้องเพิ่ม @FormUrlEncoded ถ้าจะใช้ @Field
+    @FormUrlEncoded
+    @POST("family/add-member")
+    suspend fun addMemberToFamily(
+        @Field("idFamily") idFamily: Int,
+        @Field("citizenId") citizenId: String
+    ): Response<Unit>
+
+    @DELETE("family/remove-member/{iduser}")
+    suspend fun removeMemberFromFamily(
+        @Path("iduser") iduser: Int
+    ): Response<Unit>
+
+    @DELETE("family/delete/{idFamily}")
+    suspend fun deleteWholeFamilyById(
+        @Path("idFamily") idFamily: Int
+    ): Response<Unit>
+
+    // ฟังก์ชันเดิมอื่นๆ...
+    @GET("family/members/{userId}")
+    suspend fun getFamilyMembersByUserId(@Path("userId") userId: Int): Response<List<FamilyMemberDetail>>
 
 }

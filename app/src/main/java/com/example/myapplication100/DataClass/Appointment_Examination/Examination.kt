@@ -1,5 +1,7 @@
 package com.example.myapplication100.DataClass.Appointment_Examination
 
+import com.google.gson.annotations.SerializedName
+
 data class Examination(
     val idexamination: Int? = null,
     val exam_date: String?,
@@ -14,5 +16,14 @@ data class Examination(
     val weight: Double?,
     val height: Double?,
     val temperature: Double?,
-    val total_cost: Double?
+    val total_cost: Double?,
+
+
+    @SerializedName("Appointment_date")
+val appointmentDate: String? = null,
+
+@SerializedName("initial_symptom")
+val symptom: String? = null,
+
+
 )
