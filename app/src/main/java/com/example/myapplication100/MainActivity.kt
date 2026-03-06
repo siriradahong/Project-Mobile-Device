@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
@@ -36,7 +37,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import com.example.myapplication100.DataClass.Family.FamilyMemberDetail
 import com.example.myapplication100.LoginRegis.UserSession.iduser
+import kotlinx.coroutines.delay
+import org.intellij.lang.annotations.JdkConstants
 
 
 class MainActivity : ComponentActivity() {
@@ -93,10 +97,17 @@ fun HomeScreen(nav: NavHostController) {
     val viewModel: AppointmentViewModel = viewModel(factory = factory)
 
     val appointments by viewModel.appointments.collectAsState()
+    val allAppointments by viewModel.allAppointments.collectAsState()
 
     LaunchedEffect(Unit) {
-        viewModel.loadAppointments(UserSession.iduser)
+        while (true) {
+            viewModel.loadAppointments(iduser)
+            viewModel.loadAllAppointments(iduser)
+
+            delay(5000)
+        }
     }
+
     val currentQueue = viewModel.currentQueue.value
     val remaining = viewModel.remainingQueue.value
 
@@ -209,7 +220,7 @@ fun HomeScreen(nav: NavHostController) {
                             Spacer(modifier = Modifier.height(10.dp))
 
                             Text(
-                                text = currentQueue, // เลขคิวจริง
+                                text = viewModel.currentQueue.value, // เลขคิวจริง
                                 fontSize = 100.sp,
                                 fontWeight = FontWeight.Black
                             )
@@ -217,7 +228,7 @@ fun HomeScreen(nav: NavHostController) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(text = "เหลือก่อนถึงคิวคุณ ", fontSize = 18.sp)
                                 Text(
-                                    text = "$remaining", // จำนวนคิวที่เหลือจริง
+                                    text = "${viewModel.remainingQueue.value}", // จำนวนคิวที่เหลือจริง
                                     color = Color.Red,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -302,7 +313,7 @@ fun AppointmentCard(text: String) {
             .shadow(2.dp, RoundedCornerShape(12.dp)),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, Color.LightGray)
+        border = BorderStroke(0.5.dp, Color.LightGray)
     ) {
         Box(modifier = Modifier.padding(16.dp)) {
             Text(
@@ -369,10 +380,78 @@ fun CenterScreen(title: String) {
 }
 
 // ถ้าคุณยังไม่มี BookingScreen ให้เพิ่มตัวนี้ไว้ชั่วคราวกัน Error ครับ
+@Composable
+fun BookingScreen(navController: NavHostController) {
+    var screenState by remember { mutableStateOf(0) }
+    when (screenState) {
+        0 -> {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFF2F5DAA))
+                    .padding(vertical = 20.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "จองคิวหาหมอ",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Column(modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally) {
+                Row{
+                    Button(onClick = { screenState = 1 },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(55.dp),
+                        shape = RoundedCornerShape(50),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF4A8C8E)
+                        )
+                    )
+                    {
+                        Text("จองคิวให้ตัวเอง",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row{
+                    Button(onClick = { screenState = 2 },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(55.dp),
+                        shape = RoundedCornerShape(50),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF4A8C8E)
+                        )
+                    )
+                    {
+                        Text("จองคิวให้ผู้อื่น",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+        1 -> SelfBooking(navController)
+        2 -> OtherBooking(navController)
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BookingScreen(navController: NavHostController) {
+fun OtherBooking(navController: NavHostController) {
+
+    val userId = UserSession.iduser
     val api = RetrofitClient.instance
     val repository = AppointmentRepository(api)
     val factory = AppointmentViewModelFactory(repository)
@@ -391,6 +470,10 @@ fun BookingScreen(navController: NavHostController) {
         "Online","Walk-in"
     )
 
+    LaunchedEffect(Unit) {
+        viewModel.loadFamilyMembers(userId)
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -406,7 +489,7 @@ fun BookingScreen(navController: NavHostController) {
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "จองคิวหาหมอ",
+                text = "จองคิวให้ผู้อื่น",
                 color = Color.White,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
@@ -440,6 +523,51 @@ fun BookingScreen(navController: NavHostController) {
                 },
                 year, month, day
             )
+
+            val members = viewModel.familyMembers
+            var expanded by remember { mutableStateOf(false) }
+            var selectedMember by remember { mutableStateOf<FamilyMemberDetail?>(null) }
+
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded }
+            ) {
+
+                OutlinedTextField(
+                    value = selectedMember?.firstName + " " + (selectedMember?.lastName ?: ""),
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("เลือกสมาชิกครอบครัว") },
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded)
+                    },
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth()
+                )
+
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+
+                    members.forEach { member ->
+
+                        DropdownMenuItem(
+                            text = {
+                                Text("${member.firstName} ${member.lastName}")
+                            },
+                            onClick = {
+                                selectedMember = member
+                                expanded = false
+                            }
+                        )
+
+                    }
+
+                }
+            }
+
 
             Text(
                 text = "วันที่จอง",
@@ -579,8 +707,252 @@ fun BookingScreen(navController: NavHostController) {
                     if (selectedDate.isNotEmpty() && selectedType.isNotEmpty() && selectedTimeIndex.isNotEmpty() && symptom.isNotEmpty()){
                         val appointment = Appointment(
                             idAppointment = null,
-                            patient_iduser = UserSession.iduser,
-                            booking_by_user_id = UserSession.iduser,
+                            patient_iduser = selectedMember?.iduser ?: 0,
+                            booking_by_user_id = iduser,
+                            Appointment_date = selectedDate,
+                            time_slot = selectedTimeIndex,
+                            initial_symptom = symptom,
+                            queue_number = null,
+                            check_in_time = null,
+                            status = "Pending",
+                            booking_type = selectedType
+                        )
+                        viewModel.createAppointment(appointment)
+                        navController.popBackStack()
+                    }else{
+
+                    }
+                },
+
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(55.dp),
+                shape = RoundedCornerShape(50),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF4A8C8E)
+                )
+            ) {
+                Text(
+                    text = "ยืนยันการจองคิว",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SelfBooking(navController: NavHostController) {
+    val api = RetrofitClient.instance
+    val repository = AppointmentRepository(api)
+    val factory = AppointmentViewModelFactory(repository)
+    val viewModel: AppointmentViewModel = viewModel(factory = factory)
+
+    var selectedType by remember { mutableStateOf("") }
+
+    var selectedTimeIndex by remember { mutableStateOf("") }
+    var symptom by remember { mutableStateOf("") }
+
+    val timeSlots = listOf(
+        "09:00 - 12:00",
+        "13:00 - 16:00"
+    )
+    val type = listOf(
+        "Online","Walk-in"
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF2F2F2))
+    ) {
+
+        // 🔵 Header
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF2F5DAA))
+                .padding(vertical = 20.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "จองคิวให้ตัวเอง",
+                color = Color.White,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),) {
+
+            // 📅 เลือกวันที่
+            val context = LocalContext.current
+            val calendar = Calendar.getInstance()
+
+            var selectedDate by rememberSaveable { mutableStateOf("") }
+
+            val year = calendar.get(Calendar.YEAR)
+            val month = calendar.get(Calendar.MONTH)
+            val day = calendar.get(Calendar.DAY_OF_MONTH)
+
+            val datePickerDialog = DatePickerDialog(
+                context,
+                { _, selectedYear, selectedMonth, selectedDay ->
+                    val formattedDate = String.format(
+                        "%04d-%02d-%02d",
+                        selectedYear,
+                        selectedMonth + 1,
+                        selectedDay
+                    )
+                    selectedDate = formattedDate
+                },
+                year, month, day
+            )
+
+            Text(
+                text = "วันที่จอง",
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = selectedDate,
+                onValueChange = {},
+                placeholder = { Text("เลือกวันที่") },
+                readOnly = true,
+                modifier = Modifier
+                    .fillMaxWidth(),
+                shape = RoundedCornerShape(5.dp),
+                trailingIcon = {
+                    IconButton(onClick = { datePickerDialog.show() }) {
+                        Icon(Icons.Default.DateRange, contentDescription = "Pick Date")
+                    }
+                }
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "เลือกรูปแบบการจอง",
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                type.forEach { it ->
+
+                    val isSelected = it == selectedType
+
+                    OutlinedButton(
+                        onClick = { selectedType = it },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(55.dp),
+                        shape = RoundedCornerShape(5.dp),
+                        border = BorderStroke(
+                            1.dp,
+                            if (isSelected) Color(0xFF2F5DAA)
+                            else Color.Gray
+                        ),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (isSelected)
+                                Color(0xFFE3EDFF)
+                            else Color.Transparent
+                        )
+                    ) {
+                        Text(
+                            text = it,
+                            color = Color.Black,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // ⏰ เลือกช่วงเวลา
+            Text(
+                text = "เลือกช่วงเวลา",
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                timeSlots.forEach { it ->
+
+                    val isSelected = it == selectedTimeIndex
+
+                    OutlinedButton(
+                        onClick = { selectedTimeIndex = it },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(55.dp),
+                        shape = RoundedCornerShape(5.dp),
+                        border = BorderStroke(
+                            1.dp,
+                            if (isSelected) Color(0xFF2F5DAA)
+                            else Color.Gray
+                        ),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (isSelected)
+                                Color(0xFFE3EDFF)
+                            else Color.Transparent
+                        )
+                    ) {
+                        Text(
+                            text = it,
+                            color = Color.Black,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // 🩺 อาการเบื้องต้น
+            Text(
+                text = "อาการเบื้องต้น",
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = symptom,
+                onValueChange = { symptom = it },
+                placeholder = { Text("รายละเอียดอาการ...") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp),
+                shape = RoundedCornerShape(5.dp)
+            )
+
+            Spacer(modifier = Modifier.height(100.dp))
+
+            // 🔘 ปุ่มยืนยัน
+            Button(
+                onClick = {
+                    if (selectedDate.isNotEmpty() && selectedType.isNotEmpty() && selectedTimeIndex.isNotEmpty() && symptom.isNotEmpty()){
+                        val appointment = Appointment(
+                            idAppointment = null,
+                            patient_iduser = iduser,
+                            booking_by_user_id = iduser,
                             Appointment_date = selectedDate,
                             time_slot = selectedTimeIndex,
                             initial_symptom = symptom,

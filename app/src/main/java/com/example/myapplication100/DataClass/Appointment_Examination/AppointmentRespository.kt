@@ -1,5 +1,6 @@
 package com.example.myapplication100.DataClass.Appointment_Examination
 
+import com.example.myapplication100.DataClass.Family.FamilyMemberDetail
 import retrofit2.Response
 import com.example.myapplication100.DataClass.HospitalApiService
 
@@ -22,5 +23,17 @@ class AppointmentRepository(
         }
     }
 
+    suspend fun getAllAppointments(): Response<List<Appointment>> {
+        return api.getAllAppointments()
+    }
+
+    suspend fun createAppointmentFamily(data: Appointment): Response<AppointmentResponse> {
+        return api.createAppointment(data)
+    }
+
+
+    suspend fun getFamilyMembers(userId: Int): Response<List<FamilyMemberDetail>> {
+        return api.getFamilyMembersByUserId(userId)
+    }
 
 }

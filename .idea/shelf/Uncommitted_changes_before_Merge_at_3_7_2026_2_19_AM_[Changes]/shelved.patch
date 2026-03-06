@@ -1,0 +1,714 @@
+Index: app/src/main/java/com/example/myapplication100/DataClass/HospitalApiService.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.example.myapplication100.DataClass\r\n\r\nimport com.example.myapplication100.DataClass.Appointment_Examination.*\r\nimport com.example.myapplication100.DataClass.Login.*\r\nimport com.example.myapplication100.DataClass.Medicine_Prescription.*\r\nimport com.example.myapplication100.DataClass.User_Roles.*\r\nimport retrofit2.Response\r\nimport retrofit2.http.*\r\nimport com.example.myapplication100.DataClass.Login.*\r\n\r\n\r\ninterface HospitalApiService {\r\n\r\n    // --- ส่วนของ Register & Login ---\r\n\r\n    // เปลี่ยนชื่อให้ตรงกับหน้า UI (RegisterStep2Screen)\r\n\r\n    // เปลี่ยนชื่อและ Request Class ให้ตรงกับหน้า UI (LoginScreen)\r\n\r\n    @POST(\"register/patient\")\r\n    suspend fun registerUser(@Body request: RegisterRequest): Response<RegisterResponse>\r\n\r\n    @POST(\"login\")\r\n    suspend fun loginUser(@Body request: LoginRequest): Response<LoginResponse>\r\n\r\n    @GET(\"users\")\r\n    suspend fun getAllUsers(): Response<List<UserResponse>>\r\n    // --- ส่วนของ Patient App (หน้าแรก & ประวัติ) ---\r\n\r\n    @GET(\"patient/{id}/appointments\")\r\n    suspend fun getMyAppointments(@Path(\"id\") userId: Int): Response<List<Appointment>>\r\n\r\n    @GET(\"patient/{id}/history\")\r\n    suspend fun getMedicalHistory(@Path(\"id\") userId: Int): Response<List<Examination>>\r\n\r\n\r\n    // --- ส่วนของ Assistant & Doctor App ---\r\n\r\n    @GET(\"appointments/today\")\r\n    suspend fun getTodayQueue(): Response<List<Appointment>>\r\n\r\n    @GET(\"appointments/user/{patient_iduser}\")\r\n    suspend fun getAppointmentsByUser(\r\n        @Path(\"patient_iduser\") patient_iduser: Int\r\n    ): Response<List<Appointment>>\r\n\r\n    @POST(\"appointments\")\r\n    suspend fun createAppointment(\r\n        @Body appointment: Appointment\r\n    ): Response<AppointmentResponse>\r\n\r\n    @PUT(\"examination/vitals/{id}\")\r\n    suspend fun updateVitals(\r\n        @Path(\"id\") examId: Int,\r\n        @Body vitals: VitalsRequest\r\n    ): Response<Unit>\r\n\r\n    @POST(\"examination/diagnose\")\r\n    suspend fun saveTreatment(@Body treatment: Examination): Response<Unit>\r\n\r\n\r\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/example/myapplication100/DataClass/HospitalApiService.kt b/app/src/main/java/com/example/myapplication100/DataClass/HospitalApiService.kt
+--- a/app/src/main/java/com/example/myapplication100/DataClass/HospitalApiService.kt	(revision 9b5e8ccf05e5107bb74d436e90d68525b00b124c)
++++ b/app/src/main/java/com/example/myapplication100/DataClass/HospitalApiService.kt	(date 1772824751672)
+@@ -39,16 +39,26 @@
+     @GET("appointments/today")
+     suspend fun getTodayQueue(): Response<List<Appointment>>
+ 
++    @GET("appointments")
++    suspend fun getAllAppointments(): Response<List<Appointment>>
++
+     @GET("appointments/user/{patient_iduser}")
+     suspend fun getAppointmentsByUser(
+         @Path("patient_iduser") patient_iduser: Int
+     ): Response<List<Appointment>>
+ 
++    // self booking
+     @POST("appointments")
+     suspend fun createAppointment(
+         @Body appointment: Appointment
+     ): Response<AppointmentResponse>
+ 
++    //other booking
++    @POST("appointments/book-for-family")
++    suspend fun createAppointmentFamily(
++        @Body request: AppointmentFamilyRequest
++    ): Response<AppointmentFamilyResponse>
++
+     @PUT("examination/vitals/{id}")
+     suspend fun updateVitals(
+         @Path("id") examId: Int,
+Index: app/src/main/java/com/example/myapplication100/DataClass/Appointment_Examination/AppointmentViewModel.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.example.myapplication100.DataClass.Appointment_Examination\r\n\r\nimport android.util.Log\r\nimport androidx.compose.runtime.mutableStateOf\r\nimport androidx.lifecycle.ViewModel\r\nimport androidx.lifecycle.viewModelScope\r\nimport kotlinx.coroutines.launch\r\nimport kotlinx.coroutines.flow.MutableStateFlow\r\nimport kotlinx.coroutines.flow.StateFlow\r\n\r\nclass AppointmentViewModel(\r\n    private val repository: AppointmentRepository\r\n) : ViewModel() {\r\n\r\n\r\n    var currentQueue = mutableStateOf<String>(\"ไม่มีคิว\")\r\n        private set\r\n\r\n    var remainingQueue = mutableStateOf(0)\r\n        private set\r\n\r\n    private val _appointments = MutableStateFlow<List<Appointment>>(emptyList())\r\n    val appointments: StateFlow<List<Appointment>> = _appointments\r\n\r\n    fun createAppointment(appointment: Appointment) {\r\n        viewModelScope.launch {\r\n            try {\r\n                val response = repository.createAppointment(appointment)\r\n                Log.d(\"BOOKING\", response.message())\r\n                // โหลดข้อมูลใหม่หลังจากจอง\r\n                if (appointment.patient_iduser != null) {\r\n                    loadAppointments(appointment.patient_iduser)\r\n                }\r\n            } catch (e: Exception) {\r\n                Log.e(\"BOOKING\", e.message ?: \"Error\")\r\n            }\r\n        }\r\n    }\r\n\r\n    fun loadAppointments(patient_iduser: Int) {\r\n        viewModelScope.launch {\r\n            Log.d(\"test_api\", \"call: $patient_iduser\")\r\n            val result = repository.getAppointmentsByUser(patient_iduser)\r\n            Log.d(\"test_api\", result.toString())\r\n            _appointments.value = result ?: emptyList()\r\n\r\n//            try {\r\n//                val response = repository.getAppointmentsByUser(queue_number)\r\n//                if (response.isSuccessful) {\r\n//                    val list = response.body() // ดึง body ออกมาก่อน\r\n//                    if (list != null) {\r\n//                        appointments.clear()\r\n//                        appointments.addAll(list) // ใส่รายการทั้งหมดลงไป\r\n//\r\n//                        // หาคิวที่ใกล้ที่สุด\r\n//                        val myNextQueue = list.find { app ->\r\n//                            app.status == \"Pending\" || app.status == \"Confirmed\"\r\n//                        }\r\n//                        currentQueue.value = myNextQueue?.queue_number ?: \"ไม่มีคิว\"\r\n//\r\n//                        // นับจำนวนคิวที่เหลือ\r\n//                        remainingQueue.value = list.filter { app ->\r\n//                            app.status == \"Pending\"\r\n//                        }.size\r\n//                    }\r\n//                }\r\n//            } catch (e: Exception) {\r\n//                Log.e(\"FETCH_APP\", e.message ?: \"Error\")\r\n//            }\r\n\r\n        }\r\n    }\r\n//fun loadAppointments(patient_iduser: Int) {\r\n//    viewModelScope.launch {\r\n//        try {val result = repository.getAppointmentsByUser(patient_iduser)\r\n//            if (result != null) {\r\n//                _appointments.value = result\r\n//\r\n//                // --- เพิ่มส่วนนี้เพื่ออัปเดตหน้าจอ ---\r\n//\r\n//                // 1. หาคิวที่ใกล้ที่สุด (เช่น วันนี้ และ Status ยังไม่เสร็จ)\r\n//                val myNextQueue = result.find { it.status == \"Pending\" || it.status == \"Confirmed\" }\r\n//                currentQueue.value = myNextQueue?.queue_number ?: \"ไม่มีคิว\"\r\n//\r\n//                // 2. นับจำนวนคิวที่เหลือ (กรองเฉพาะรายการที่กำลังรอ)\r\n//                remainingQueue.value = result.filter { it.status == \"Pending\" }.size\r\n//            } else {\r\n//                _appointments.value = emptyList()\r\n//                currentQueue.value = \"ไม่มีคิว\"\r\n//                remainingQueue.value = 0\r\n//            }\r\n//        } catch (e: Exception) {\r\n//            Log.e(\"FETCH_ERROR\", e.message ?: \"Error\")\r\n//        }\r\n//    }\r\n//}\r\n\r\n//    fun fetchMyAppointments(userId: Int) {\r\n//        viewModelScope.launch {\r\n//            try {\r\n//                val response = repository.getMyAppointments(userId)\r\n//                if (response.isSuccessful) {\r\n//                    val list = response.body() // ดึง body ออกมาก่อน\r\n//                    if (list != null) {\r\n//                        appointments.clear()\r\n//                        appointments.addAll(list) // ใส่รายการทั้งหมดลงไป\r\n//\r\n//                        // หาคิวที่ใกล้ที่สุด\r\n//                        val myNextQueue = list.find { app ->\r\n//                            app.status == \"Pending\" || app.status == \"Confirmed\"\r\n//                        }\r\n//                        currentQueue.value = myNextQueue?.queue_number ?: \"ไม่มีคิว\"\r\n//\r\n//                        // นับจำนวนคิวที่เหลือ\r\n//                        remainingQueue.value = list.filter { app ->\r\n//                            app.status == \"Pending\"\r\n//                        }.size\r\n//                    }\r\n//                }\r\n//            } catch (e: Exception) {\r\n//                Log.e(\"FETCH_APP\", e.message ?: \"Error\")\r\n//            }\r\n//        }\r\n//    }\r\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/example/myapplication100/DataClass/Appointment_Examination/AppointmentViewModel.kt b/app/src/main/java/com/example/myapplication100/DataClass/Appointment_Examination/AppointmentViewModel.kt
+--- a/app/src/main/java/com/example/myapplication100/DataClass/Appointment_Examination/AppointmentViewModel.kt	(revision 9b5e8ccf05e5107bb74d436e90d68525b00b124c)
++++ b/app/src/main/java/com/example/myapplication100/DataClass/Appointment_Examination/AppointmentViewModel.kt	(date 1772824751671)
+@@ -22,6 +22,9 @@
+     private val _appointments = MutableStateFlow<List<Appointment>>(emptyList())
+     val appointments: StateFlow<List<Appointment>> = _appointments
+ 
++    private val _allAppointments = MutableStateFlow<List<Appointment>>(emptyList())
++    val allAppointments = _allAppointments
++
+     fun createAppointment(appointment: Appointment) {
+         viewModelScope.launch {
+             try {
+@@ -44,82 +47,58 @@
+             Log.d("test_api", result.toString())
+             _appointments.value = result ?: emptyList()
+ 
+-//            try {
+-//                val response = repository.getAppointmentsByUser(queue_number)
+-//                if (response.isSuccessful) {
+-//                    val list = response.body() // ดึง body ออกมาก่อน
+-//                    if (list != null) {
+-//                        appointments.clear()
+-//                        appointments.addAll(list) // ใส่รายการทั้งหมดลงไป
+-//
+-//                        // หาคิวที่ใกล้ที่สุด
+-//                        val myNextQueue = list.find { app ->
+-//                            app.status == "Pending" || app.status == "Confirmed"
+-//                        }
+-//                        currentQueue.value = myNextQueue?.queue_number ?: "ไม่มีคิว"
+-//
+-//                        // นับจำนวนคิวที่เหลือ
+-//                        remainingQueue.value = list.filter { app ->
+-//                            app.status == "Pending"
+-//                        }.size
+-//                    }
+-//                }
+-//            } catch (e: Exception) {
+-//                Log.e("FETCH_APP", e.message ?: "Error")
+-//            }
++            calculateQueue(patient_iduser)
++        }
++    }
++
++    fun loadAllAppointments(patient_iduser: Int) {
++        viewModelScope.launch {
++            val response = repository.getAllAppointments()
++            if (response.isSuccessful) {
++                _allAppointments.value = response.body() ?: emptyList()
++
++                calculateQueue(patient_iduser)
++
++            }
++
++        }
++    }
++    fun calculateQueue(patient_iduser: Int) {
++
++        val all = _allAppointments.value
++        val my = _appointments.value
++
++        val Screening = all.firstOrNull { it.status == "Screening" }
++
++        currentQueue.value = Screening?.queue_number ?: "ไม่มีคิว"
++
++        val myQueue = my.firstOrNull()
++
++        if (Screening != null && myQueue != null) {
++
++            val runningNumber = Screening.queue_number?.substring(1)?.toIntOrNull() ?: 0
++            val myNumber = myQueue.queue_number?.substring(1)?.toIntOrNull() ?: 0
++
++            val remain = myNumber - runningNumber
++
++            remainingQueue.value = if (remain > 0) remain else 0
++        }
++    }
+ 
++    fun createAppointmentFamily(data: Appointment) {
++        viewModelScope.launch {
++            try {
++                val response = repository.createAppointmentFamily(data)
++                if (response.isSuccessful) {
++                    Log.d("BOOK", "success")
++                }
++            } catch (e: Exception) {
++                Log.e("BOOK", e.message ?: "error")
++            }
+         }
+     }
+-//fun loadAppointments(patient_iduser: Int) {
+-//    viewModelScope.launch {
+-//        try {val result = repository.getAppointmentsByUser(patient_iduser)
+-//            if (result != null) {
+-//                _appointments.value = result
+-//
+-//                // --- เพิ่มส่วนนี้เพื่ออัปเดตหน้าจอ ---
+-//
+-//                // 1. หาคิวที่ใกล้ที่สุด (เช่น วันนี้ และ Status ยังไม่เสร็จ)
+-//                val myNextQueue = result.find { it.status == "Pending" || it.status == "Confirmed" }
+-//                currentQueue.value = myNextQueue?.queue_number ?: "ไม่มีคิว"
+-//
+-//                // 2. นับจำนวนคิวที่เหลือ (กรองเฉพาะรายการที่กำลังรอ)
+-//                remainingQueue.value = result.filter { it.status == "Pending" }.size
+-//            } else {
+-//                _appointments.value = emptyList()
+-//                currentQueue.value = "ไม่มีคิว"
+-//                remainingQueue.value = 0
+-//            }
+-//        } catch (e: Exception) {
+-//            Log.e("FETCH_ERROR", e.message ?: "Error")
+-//        }
+-//    }
+-//}
++
+ 
+-//    fun fetchMyAppointments(userId: Int) {
+-//        viewModelScope.launch {
+-//            try {
+-//                val response = repository.getMyAppointments(userId)
+-//                if (response.isSuccessful) {
+-//                    val list = response.body() // ดึง body ออกมาก่อน
+-//                    if (list != null) {
+-//                        appointments.clear()
+-//                        appointments.addAll(list) // ใส่รายการทั้งหมดลงไป
+-//
+-//                        // หาคิวที่ใกล้ที่สุด
+-//                        val myNextQueue = list.find { app ->
+-//                            app.status == "Pending" || app.status == "Confirmed"
+-//                        }
+-//                        currentQueue.value = myNextQueue?.queue_number ?: "ไม่มีคิว"
+-//
+-//                        // นับจำนวนคิวที่เหลือ
+-//                        remainingQueue.value = list.filter { app ->
+-//                            app.status == "Pending"
+-//                        }.size
+-//                    }
+-//                }
+-//            } catch (e: Exception) {
+-//                Log.e("FETCH_APP", e.message ?: "Error")
+-//            }
+-//        }
+-//    }
++
++
+ }
+\ No newline at end of file
+Index: app/src/main/java/com/example/myapplication100/MainActivity.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.example.myapplication100\r\n\r\nimport android.app.DatePickerDialog\r\nimport android.os.Bundle\r\nimport androidx.activity.ComponentActivity\r\nimport androidx.activity.compose.setContent\r\nimport androidx.compose.foundation.*\r\nimport androidx.compose.foundation.layout.*\r\nimport androidx.compose.foundation.lazy.LazyRow\r\nimport androidx.compose.foundation.lazy.itemsIndexed\r\nimport androidx.compose.foundation.shape.CircleShape\r\nimport androidx.compose.foundation.shape.RoundedCornerShape\r\nimport androidx.compose.material.icons.Icons\r\nimport androidx.compose.material.icons.filled.*\r\nimport androidx.compose.material3.*\r\nimport androidx.compose.runtime.*\r\nimport androidx.compose.runtime.saveable.rememberSaveable\r\nimport androidx.compose.ui.Alignment\r\nimport androidx.compose.ui.Modifier\r\nimport androidx.compose.ui.graphics.Color\r\nimport androidx.compose.ui.platform.LocalContext\r\nimport androidx.compose.ui.text.font.FontWeight\r\nimport androidx.compose.ui.text.style.TextAlign\r\nimport androidx.compose.ui.unit.dp\r\nimport androidx.compose.ui.unit.sp\r\nimport androidx.lifecycle.viewmodel.compose.viewModel\r\nimport androidx.navigation.NavHostController\r\nimport androidx.navigation.compose.*\r\nimport com.example.myapplication100.DataClass.Appointment_Examination.Appointment\r\nimport com.example.myapplication100.DataClass.Appointment_Examination.AppointmentRepository\r\nimport com.example.myapplication100.DataClass.Appointment_Examination.AppointmentViewModel\r\nimport com.example.myapplication100.DataClass.Appointment_Examination.AppointmentViewModelFactory\r\nimport com.example.myapplication100.LoginRegis.*\r\nimport java.util.Calendar\r\nimport androidx.compose.foundation.lazy.LazyColumn\r\nimport androidx.compose.foundation.lazy.items\r\nimport androidx.compose.ui.draw.clip\r\nimport androidx.compose.ui.draw.shadow\r\nimport com.example.myapplication100.LoginRegis.UserSession.iduser\r\n\r\n\r\nclass MainActivity : ComponentActivity() {\r\n    override fun onCreate(savedInstanceState: Bundle?) {\r\n        super.onCreate(savedInstanceState)\r\n        setContent { App() }\r\n    }\r\n}\r\n\r\n@Composable\r\nfun App() {\r\n    val nav = rememberNavController()\r\n    val navBackStackEntry by nav.currentBackStackEntryAsState()\r\n    val currentRoute = navBackStackEntry?.destination?.route ?: \"\"\r\n\r\n    Scaffold(\r\n        bottomBar = {\r\n            if (currentRoute.startsWith(\"home\") || currentRoute == \"history\" || currentRoute == \"profile\" || currentRoute == \"booking\") {\r\n                BottomBar(nav)\r\n            }\r\n        }\r\n    ) { pad ->\r\n        NavHost(nav, startDestination = \"login\", Modifier.padding(pad)) {\r\n            composable(\"login\") { LoginScreen(nav) }\r\n            composable(\"register1\") { RegisterStep1Screen(nav) }\r\n            composable(\"register2\") { RegisterStep2Screen(nav) }\r\n\r\n            // หน้า Home รับชื่อมาแสดง\r\n            composable(\"home/{fname}/{lname}\") { entry ->\r\n                val fname = entry.arguments?.getString(\"fname\") ?: \"User\"\r\n                val lname = entry.arguments?.getString(\"lname\") ?: \"\"\r\n                HomeScreen(nav)\r\n            }\r\n\r\n            composable(\"booking\") { BookingScreen(nav) }\r\n            composable(\"history\") { CenterScreen(\"ประวัติการรักษา\") }\r\n            composable(\"profile\") {\r\n                Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {\r\n                    Spacer(Modifier.height(50.dp))\r\n                    Text(\"ข้อมูลส่วนตัว\", fontSize = 24.sp, fontWeight = FontWeight.Bold)\r\n                    Spacer(Modifier.height(20.dp))\r\n\r\n                    // แสดงข้อมูลของคนๆ นั้นที่เก็บไว้ใน Session\r\n                    Text(\"ชื่อ-นามสกุล: ${UserSession.firstName} ${UserSession.lastName}\")\r\n                    Text(\"เลขบัตรประชาชน: ${UserSession.citizenId}\")\r\n                }\r\n            }\r\n        }\r\n    }\r\n}\r\n\r\n@Composable\r\nfun HomeScreen(nav: NavHostController) {\r\n    // 1. เตรียม ViewModel และดึงข้อมูล\r\n    val api = RetrofitClient.instance\r\n    val repository = AppointmentRepository(api)\r\n    val factory = AppointmentViewModelFactory(repository)\r\n    val viewModel: AppointmentViewModel = viewModel(factory = factory)\r\n\r\n    val appointments by viewModel.appointments.collectAsState()\r\n\r\n    LaunchedEffect(Unit) {\r\n        viewModel.loadAppointments(UserSession.iduser)\r\n    }\r\n    val currentQueue = viewModel.currentQueue.value\r\n    val remaining = viewModel.remainingQueue.value\r\n\r\n    Column(\r\n        modifier = Modifier\r\n            .fillMaxSize()\r\n            .background(Color(0xFF21539D)) // สีน้ำเงินด้านบน\r\n    ) {\r\n        // ส่วนหัว \"หน้าแรก\"\r\n        Box(\r\n            modifier = Modifier\r\n                .fillMaxWidth()\r\n                .padding(vertical = 16.dp),\r\n            contentAlignment = Alignment.Center\r\n        ) {\r\n            Text(\r\n                text = \"หน้าแรก\",\r\n                color = Color.White,\r\n                fontSize = 20.sp,\r\n                fontWeight = FontWeight.Bold\r\n            )\r\n        }\r\n\r\n        // พื้นหลังสีขาวโค้งมน\r\n        Surface(\r\n            modifier = Modifier.fillMaxSize(),\r\n            color = Color.White,\r\n            shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)\r\n        ) {\r\n            LazyColumn(\r\n                modifier = Modifier\r\n                    .fillMaxSize()\r\n                    .padding(horizontal = 20.dp),\r\n                horizontalAlignment = Alignment.CenterHorizontally\r\n            ) {\r\n                item { Spacer(modifier = Modifier.height(20.dp)) }\r\n\r\n                // แถวโปรไฟล์และแจ้งเตือน\r\n                item {\r\n                    Row(\r\n                        modifier = Modifier.fillMaxWidth(),\r\n                        verticalAlignment = Alignment.CenterVertically,\r\n                        horizontalArrangement = Arrangement.SpaceBetween\r\n                    ) {\r\n                        Row(verticalAlignment = Alignment.CenterVertically) {\r\n                            // จำลองรูปโปรไฟล์\r\n                            Box(\r\n                                modifier = Modifier\r\n                                    .size(45.dp)\r\n                                    .clip(CircleShape)\r\n                                    .background(Color(0xFFE0E0E0)),\r\n                                contentAlignment = Alignment.Center\r\n                            ) {\r\n                                Icon(Icons.Default.Groups, contentDescription = null, tint = Color.Gray)\r\n                            }\r\n                            Spacer(modifier = Modifier.width(12.dp))\r\n                            Text(\r\n                                text = \"สมาชิกในครอบครัว\",\r\n                                fontSize = 16.sp,\r\n                                fontWeight = FontWeight.Medium\r\n                            )\r\n                        }\r\n\r\n                        // ไอคอนแจ้งเตือนพร้อมจุดแดง\r\n                        Box {\r\n                            Icon(\r\n                                imageVector = Icons.Default.Notifications,\r\n                                contentDescription = \"Notifications\",\r\n                                tint = Color(0xFF21539D),\r\n                                modifier = Modifier.size(28.dp)\r\n                            )\r\n                            Box(\r\n                                modifier = Modifier\r\n                                    .size(10.dp)\r\n                                    .clip(CircleShape)\r\n                                    .background(Color.Red)\r\n                                    .align(Alignment.TopEnd)\r\n                            )\r\n                        }\r\n                    }\r\n                }\r\n\r\n                item { Spacer(modifier = Modifier.height(24.dp)) }\r\n\r\n                // การ์ดแสดงคิว\r\n                item {\r\n                    Card(\r\n                        modifier = Modifier\r\n                            .fillMaxWidth()\r\n                            .shadow(8.dp, RoundedCornerShape(20.dp)),\r\n                        shape = RoundedCornerShape(20.dp),\r\n                        colors = CardDefaults.cardColors(containerColor = Color.White)\r\n                    ) {\r\n                        Column(horizontalAlignment = Alignment.CenterHorizontally) {\r\n                            Box(\r\n                                modifier = Modifier\r\n                                    .fillMaxWidth()\r\n                                    .background(Color(0xFFFFA726)) // สีส้ม\r\n                                    .padding(vertical = 10.dp),\r\n                                contentAlignment = Alignment.Center\r\n                            ) {\r\n                                Text(\r\n                                    text = \"กำลังตรวจคิว\",\r\n                                    color = Color.White,\r\n                                    fontSize = 24.sp,\r\n                                    fontWeight = FontWeight.Bold\r\n                                )\r\n                            }\r\n\r\n                            Spacer(modifier = Modifier.height(10.dp))\r\n\r\n                            Text(\r\n                                text = currentQueue, // เลขคิวจริง\r\n                                fontSize = 100.sp,\r\n                                fontWeight = FontWeight.Black\r\n                            )\r\n\r\n                            Row(verticalAlignment = Alignment.CenterVertically) {\r\n                                Text(text = \"เหลือก่อนถึงคิวคุณ \", fontSize = 18.sp)\r\n                                Text(\r\n                                    text = \"$remaining\", // จำนวนคิวที่เหลือจริง\r\n                                    color = Color.Red,\r\n                                    fontWeight = FontWeight.Bold\r\n                                )\r\n                                Text(text = \" คิว\", fontSize = 18.sp)\r\n                            }\r\n                            Spacer(modifier = Modifier.height(20.dp))\r\n                        }\r\n                    }\r\n                }\r\n\r\n                item { Spacer(modifier = Modifier.height(24.dp)) }\r\n\r\n                // ปุ่มจองคิวใหม่\r\n                item {\r\n                    Button(\r\n                        onClick = { nav.navigate(\"booking\") },\r\n                        modifier = Modifier\r\n                            .fillMaxWidth()\r\n                            .height(80.dp)\r\n                            .shadow(4.dp, RoundedCornerShape(15.dp)),\r\n                        shape = RoundedCornerShape(15.dp),\r\n                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3F7F8B)) // สีเขียวหัวเป็ด\r\n                    ) {\r\n                        Row(verticalAlignment = Alignment.CenterVertically) {\r\n                            Icon(\r\n                                Icons.Default.CalendarMonth,\r\n                                contentDescription = null,\r\n                                modifier = Modifier.size(36.dp)\r\n                            )\r\n                            Spacer(modifier = Modifier.width(16.dp))\r\n                            Text(\r\n                                text = \"จองคิวใหม่\",\r\n                                fontSize = 30.sp,\r\n                                fontWeight = FontWeight.Bold\r\n                            )\r\n                        }\r\n                    }\r\n                }\r\n\r\n                item { Spacer(modifier = Modifier.height(30.dp)) }\r\n\r\n                // หัวข้อนัดหมาย\r\n                item {\r\n                    Row(\r\n                        modifier = Modifier.fillMaxWidth(),\r\n                        verticalAlignment = Alignment.CenterVertically\r\n                    ) {\r\n                        Icon(\r\n                            Icons.Default.LocationOn,\r\n                            contentDescription = null,\r\n                            tint = Color.Red,\r\n                            modifier = Modifier.size(24.dp)\r\n                        )\r\n                        Spacer(modifier = Modifier.width(8.dp))\r\n                        Text(\r\n                            text = \"นัดหมายของฉัน\",\r\n                            fontSize = 20.sp,\r\n                            fontWeight = FontWeight.Bold\r\n                        )\r\n                    }\r\n                }\r\n\r\n                item { Spacer(modifier = Modifier.height(10.dp)) }\r\n\r\n\r\n                // 3. แสดงรายการนัดหมายจริง\r\n                items(appointments) { app ->\r\n                    AppointmentCard(\"${app.Appointment_date} ${app.time_slot} - ${app.initial_symptom}\")\r\n                    Spacer(modifier = Modifier.height(12.dp))\r\n                }\r\n\r\n                item { Spacer(modifier = Modifier.height(100.dp)) } // เผื่อที่ให้ Bottom Bar\r\n            }\r\n        }\r\n    }\r\n}\r\n@Composable\r\nfun AppointmentCard(text: String) {\r\n    Card(\r\n        modifier = Modifier\r\n            .fillMaxWidth()\r\n            .shadow(2.dp, RoundedCornerShape(12.dp)),\r\n        shape = RoundedCornerShape(12.dp),\r\n        colors = CardDefaults.cardColors(containerColor = Color.White),\r\n        border = androidx.compose.foundation.BorderStroke(0.5.dp, Color.LightGray)\r\n    ) {\r\n        Box(modifier = Modifier.padding(16.dp)) {\r\n            Text(\r\n                text = text,\r\n                fontSize = 15.sp,\r\n                fontWeight = FontWeight.Normal,\r\n                color = Color.Black\r\n            )\r\n        }\r\n    }\r\n}\r\n@Composable\r\nfun BottomBar(navController: NavHostController) {\r\n    // ตรวจสอบหน้าปัจจุบันเพื่อให้ปุ่ม Highlight สีได้ถูกต้อง\r\n    val navBackStackEntry by navController.currentBackStackEntryAsState()\r\n    val currentRoute = navBackStackEntry?.destination?.route\r\n\r\n    NavigationBar(\r\n        containerColor = Color.White,\r\n        tonalElevation = 8.dp\r\n    ) {\r\n        NavigationBarItem(\r\n            icon = { Icon(Icons.Default.Home, contentDescription = \"Home\") },\r\n            label = { Text(\"หน้าแรก\") },\r\n            selected = currentRoute?.startsWith(\"home\") == true,\r\n            onClick = {\r\n\r\n                val fn = UserSession.firstName.ifEmpty { \"User\" }\r\n                val ln = UserSession.lastName.ifEmpty { \" \" }\r\n                navController.navigate(\"home/$fn/$ln\") {\r\n                    popUpTo(navController.graph.startDestinationId) { saveState = true }\r\n                    launchSingleTop = true\r\n                    restoreState = true\r\n\r\n                }\r\n            }\r\n        )\r\n        NavigationBarItem(\r\n            icon = { Icon(Icons.Default.DateRange, contentDescription = \"Booking\") },\r\n            label = { Text(\"จองคิว\") },\r\n            selected = currentRoute == \"booking\",\r\n            onClick = { navController.navigate(\"booking\") }\r\n        )\r\n        NavigationBarItem(\r\n            icon = { Icon(Icons.Default.List, contentDescription = \"History\") },\r\n            label = { Text(\"ประวัติ\") },\r\n            selected = currentRoute == \"history\",\r\n            onClick = { navController.navigate(\"history\") }\r\n        )\r\n        NavigationBarItem(\r\n            icon = { Icon(Icons.Default.Person, contentDescription = \"Profile\") },\r\n            label = { Text(\"โปรไฟล์\") },\r\n            selected = currentRoute == \"profile\",\r\n            onClick = { navController.navigate(\"profile\") }\r\n        )\r\n    }\r\n}\r\n\r\n@Composable\r\nfun CenterScreen(title: String) {\r\n    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {\r\n        Text(text = title, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.Gray)\r\n    }\r\n}\r\n\r\n// ถ้าคุณยังไม่มี BookingScreen ให้เพิ่มตัวนี้ไว้ชั่วคราวกัน Error ครับ\r\n\r\n@OptIn(ExperimentalMaterial3Api::class)\r\n@Composable\r\nfun BookingScreen(navController: NavHostController) {\r\n    val api = RetrofitClient.instance\r\n    val repository = AppointmentRepository(api)\r\n    val factory = AppointmentViewModelFactory(repository)\r\n    val viewModel: AppointmentViewModel = viewModel(factory = factory)\r\n\r\n    var selectedType by remember { mutableStateOf(\"\") }\r\n\r\n    var selectedTimeIndex by remember { mutableStateOf(\"\") }\r\n    var symptom by remember { mutableStateOf(\"\") }\r\n\r\n    val timeSlots = listOf(\r\n        \"09:00 - 12:00\",\r\n        \"13:00 - 16:00\"\r\n    )\r\n    val type = listOf(\r\n        \"Online\",\"Walk-in\"\r\n    )\r\n\r\n    Column(\r\n        modifier = Modifier\r\n            .fillMaxSize()\r\n            .background(Color(0xFFF2F2F2))\r\n    ) {\r\n\r\n        // \uD83D\uDD35 Header\r\n        Box(\r\n            modifier = Modifier\r\n                .fillMaxWidth()\r\n                .background(Color(0xFF2F5DAA))\r\n                .padding(vertical = 20.dp),\r\n            contentAlignment = Alignment.Center\r\n        ) {\r\n            Text(\r\n                text = \"จองคิวหาหมอ\",\r\n                color = Color.White,\r\n                fontSize = 20.sp,\r\n                fontWeight = FontWeight.Bold\r\n            )\r\n        }\r\n\r\n        Spacer(modifier = Modifier.height(16.dp))\r\n\r\n        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),) {\r\n\r\n            // \uD83D\uDCC5 เลือกวันที่\r\n            val context = LocalContext.current\r\n            val calendar = Calendar.getInstance()\r\n\r\n            var selectedDate by rememberSaveable { mutableStateOf(\"\") }\r\n\r\n            val year = calendar.get(Calendar.YEAR)\r\n            val month = calendar.get(Calendar.MONTH)\r\n            val day = calendar.get(Calendar.DAY_OF_MONTH)\r\n\r\n            val datePickerDialog = DatePickerDialog(\r\n                context,\r\n                { _, selectedYear, selectedMonth, selectedDay ->\r\n                    val formattedDate = String.format(\r\n                        \"%04d-%02d-%02d\",\r\n                        selectedYear,\r\n                        selectedMonth + 1,\r\n                        selectedDay\r\n                    )\r\n                    selectedDate = formattedDate\r\n                },\r\n                year, month, day\r\n            )\r\n\r\n            Text(\r\n                text = \"วันที่จอง\",\r\n                fontWeight = FontWeight.Bold,\r\n                fontSize = 16.sp\r\n            )\r\n\r\n            Spacer(modifier = Modifier.height(12.dp))\r\n\r\n            OutlinedTextField(\r\n                value = selectedDate,\r\n                onValueChange = {},\r\n                placeholder = { Text(\"เลือกวันที่\") },\r\n                readOnly = true,\r\n                modifier = Modifier\r\n                    .fillMaxWidth(),\r\n                shape = RoundedCornerShape(5.dp),\r\n                trailingIcon = {\r\n                    IconButton(onClick = { datePickerDialog.show() }) {\r\n                        Icon(Icons.Default.DateRange, contentDescription = \"Pick Date\")\r\n                    }\r\n                }\r\n            )\r\n\r\n            Spacer(modifier = Modifier.height(24.dp))\r\n\r\n            Text(\r\n                text = \"เลือกรูปแบบการจอง\",\r\n                fontWeight = FontWeight.Bold,\r\n                fontSize = 16.sp\r\n            )\r\n\r\n            Spacer(modifier = Modifier.height(12.dp))\r\n\r\n            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)\r\n            ) {\r\n                type.forEach { it ->\r\n\r\n                    val isSelected = it == selectedType\r\n\r\n                    OutlinedButton(\r\n                        onClick = { selectedType = it },\r\n                        modifier = Modifier\r\n                            .weight(1f)\r\n                            .height(55.dp),\r\n                        shape = RoundedCornerShape(5.dp),\r\n                        border = BorderStroke(\r\n                            1.dp,\r\n                            if (isSelected) Color(0xFF2F5DAA)\r\n                            else Color.Gray\r\n                        ),\r\n                        colors = ButtonDefaults.outlinedButtonColors(\r\n                            containerColor = if (isSelected)\r\n                                Color(0xFFE3EDFF)\r\n                            else Color.Transparent\r\n                        )\r\n                    ) {\r\n                        Text(\r\n                            text = it,\r\n                            color = Color.Black,\r\n                            textAlign = TextAlign.Center\r\n                        )\r\n                    }\r\n                }\r\n            }\r\n\r\n            Spacer(modifier = Modifier.height(24.dp))\r\n\r\n\r\n            // ⏰ เลือกช่วงเวลา\r\n            Text(\r\n                text = \"เลือกช่วงเวลา\",\r\n                fontWeight = FontWeight.Bold,\r\n                fontSize = 16.sp\r\n            )\r\n\r\n            Spacer(modifier = Modifier.height(12.dp))\r\n\r\n            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)\r\n            ) {\r\n                timeSlots.forEach { it ->\r\n\r\n                    val isSelected = it == selectedTimeIndex\r\n\r\n                    OutlinedButton(\r\n                        onClick = { selectedTimeIndex = it },\r\n                        modifier = Modifier\r\n                            .weight(1f)\r\n                            .height(55.dp),\r\n                        shape = RoundedCornerShape(5.dp),\r\n                        border = BorderStroke(\r\n                            1.dp,\r\n                            if (isSelected) Color(0xFF2F5DAA)\r\n                            else Color.Gray\r\n                        ),\r\n                        colors = ButtonDefaults.outlinedButtonColors(\r\n                            containerColor = if (isSelected)\r\n                                Color(0xFFE3EDFF)\r\n                            else Color.Transparent\r\n                        )\r\n                    ) {\r\n                        Text(\r\n                            text = it,\r\n                            color = Color.Black,\r\n                            textAlign = TextAlign.Center\r\n                        )\r\n                    }\r\n                }\r\n            }\r\n\r\n            Spacer(modifier = Modifier.height(24.dp))\r\n\r\n            // \uD83E\uDE7A อาการเบื้องต้น\r\n            Text(\r\n                text = \"อาการเบื้องต้น\",\r\n                fontWeight = FontWeight.Bold,\r\n                fontSize = 16.sp\r\n            )\r\n\r\n            Spacer(modifier = Modifier.height(12.dp))\r\n\r\n            OutlinedTextField(\r\n                value = symptom,\r\n                onValueChange = { symptom = it },\r\n                placeholder = { Text(\"รายละเอียดอาการ...\") },\r\n                modifier = Modifier\r\n                    .fillMaxWidth()\r\n                    .height(120.dp),\r\n                shape = RoundedCornerShape(5.dp)\r\n            )\r\n\r\n            Spacer(modifier = Modifier.height(100.dp))\r\n\r\n            // \uD83D\uDD18 ปุ่มยืนยัน\r\n            Button(\r\n                onClick = {\r\n                    if (selectedDate.isNotEmpty() && selectedType.isNotEmpty() && selectedTimeIndex.isNotEmpty() && symptom.isNotEmpty()){\r\n                        val appointment = Appointment(\r\n                            idAppointment = null,\r\n                            patient_iduser = UserSession.iduser,\r\n                            booking_by_user_id = UserSession.iduser,\r\n                            Appointment_date = selectedDate,\r\n                            time_slot = selectedTimeIndex,\r\n                            initial_symptom = symptom,\r\n                            queue_number = null,\r\n                            check_in_time = null,\r\n                            status = \"Pending\",\r\n                            booking_type = selectedType\r\n                        )\r\n                        viewModel.createAppointment(appointment)\r\n                        navController.popBackStack()\r\n                    }else{\r\n\r\n                    }\r\n                },\r\n\r\n                modifier = Modifier\r\n                    .fillMaxWidth()\r\n                    .height(55.dp),\r\n                shape = RoundedCornerShape(50),\r\n                colors = ButtonDefaults.buttonColors(\r\n                    containerColor = Color(0xFF4A8C8E)\r\n                )\r\n            ) {\r\n                Text(\r\n                    text = \"ยืนยันการจองคิว\",\r\n                    color = Color.White,\r\n                    fontSize = 16.sp,\r\n                    fontWeight = FontWeight.Bold\r\n                )\r\n            }\r\n        }\r\n    }\r\n}\r\n\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/example/myapplication100/MainActivity.kt b/app/src/main/java/com/example/myapplication100/MainActivity.kt
+--- a/app/src/main/java/com/example/myapplication100/MainActivity.kt	(revision 9b5e8ccf05e5107bb74d436e90d68525b00b124c)
++++ b/app/src/main/java/com/example/myapplication100/MainActivity.kt	(date 1772824751674)
+@@ -6,6 +6,7 @@
+ import androidx.activity.compose.setContent
+ import androidx.compose.foundation.*
+ import androidx.compose.foundation.layout.*
++import androidx.compose.foundation.layout.Arrangement
+ import androidx.compose.foundation.lazy.LazyRow
+ import androidx.compose.foundation.lazy.itemsIndexed
+ import androidx.compose.foundation.shape.CircleShape
+@@ -37,6 +38,8 @@
+ import androidx.compose.ui.draw.clip
+ import androidx.compose.ui.draw.shadow
+ import com.example.myapplication100.LoginRegis.UserSession.iduser
++import kotlinx.coroutines.delay
++import org.intellij.lang.annotations.JdkConstants
+ 
+ 
+ class MainActivity : ComponentActivity() {
+@@ -97,10 +100,17 @@
+     val viewModel: AppointmentViewModel = viewModel(factory = factory)
+ 
+     val appointments by viewModel.appointments.collectAsState()
++    val allAppointments by viewModel.allAppointments.collectAsState()
+ 
+     LaunchedEffect(Unit) {
+-        viewModel.loadAppointments(UserSession.iduser)
++        while (true) {
++            viewModel.loadAppointments(iduser)
++            viewModel.loadAllAppointments(iduser)
++
++            delay(5000)
++        }
+     }
++
+     val currentQueue = viewModel.currentQueue.value
+     val remaining = viewModel.remainingQueue.value
+ 
+@@ -213,7 +223,7 @@
+                             Spacer(modifier = Modifier.height(10.dp))
+ 
+                             Text(
+-                                text = currentQueue, // เลขคิวจริง
++                                text = viewModel.currentQueue.value, // เลขคิวจริง
+                                 fontSize = 100.sp,
+                                 fontWeight = FontWeight.Black
+                             )
+@@ -221,7 +231,7 @@
+                             Row(verticalAlignment = Alignment.CenterVertically) {
+                                 Text(text = "เหลือก่อนถึงคิวคุณ ", fontSize = 18.sp)
+                                 Text(
+-                                    text = "$remaining", // จำนวนคิวที่เหลือจริง
++                                    text = "${viewModel.remainingQueue.value}", // จำนวนคิวที่เหลือจริง
+                                     color = Color.Red,
+                                     fontWeight = FontWeight.Bold
+                                 )
+@@ -306,7 +316,7 @@
+             .shadow(2.dp, RoundedCornerShape(12.dp)),
+         shape = RoundedCornerShape(12.dp),
+         colors = CardDefaults.cardColors(containerColor = Color.White),
+-        border = androidx.compose.foundation.BorderStroke(0.5.dp, Color.LightGray)
++        border = BorderStroke(0.5.dp, Color.LightGray)
+     ) {
+         Box(modifier = Modifier.padding(16.dp)) {
+             Text(
+@@ -373,10 +383,77 @@
+ }
+ 
+ // ถ้าคุณยังไม่มี BookingScreen ให้เพิ่มตัวนี้ไว้ชั่วคราวกัน Error ครับ
+-
+-@OptIn(ExperimentalMaterial3Api::class)
+ @Composable
+ fun BookingScreen(navController: NavHostController) {
++    var screenState by remember { mutableStateOf(0) }
++    when (screenState) {
++        0 -> {
++            Box(
++                modifier = Modifier
++                    .fillMaxWidth()
++                    .background(Color(0xFF2F5DAA))
++                    .padding(vertical = 20.dp),
++                contentAlignment = Alignment.Center
++            ) {
++                Text(
++                    text = "จองคิวหาหมอ",
++                    color = Color.White,
++                    fontSize = 20.sp,
++                    fontWeight = FontWeight.Bold
++                )
++            }
++
++            Column(modifier = Modifier.fillMaxSize(),
++                verticalArrangement = Arrangement.Center,
++                horizontalAlignment = Alignment.CenterHorizontally) {
++                Row{
++                    Button(onClick = { screenState = 1 },
++                        modifier = Modifier
++                            .fillMaxWidth()
++                            .height(55.dp),
++                        shape = RoundedCornerShape(50),
++                        colors = ButtonDefaults.buttonColors(
++                            containerColor = Color(0xFF4A8C8E)
++                        )
++                    )
++                    {
++                        Text("จองคิวให้ตัวเอง",
++                            color = Color.White,
++                            fontSize = 16.sp,
++                            fontWeight = FontWeight.Bold)
++                    }
++                }
++
++                Spacer(modifier = Modifier.height(16.dp))
++
++                Row{
++                    Button(onClick = { screenState = 2 },
++                        modifier = Modifier
++                            .fillMaxWidth()
++                            .height(55.dp),
++                        shape = RoundedCornerShape(50),
++                        colors = ButtonDefaults.buttonColors(
++                            containerColor = Color(0xFF4A8C8E)
++                        )
++                    )
++                    {
++                        Text("จองคิวให้ผู้อื่น",
++                            color = Color.White,
++                            fontSize = 16.sp,
++                            fontWeight = FontWeight.Bold)
++                    }
++                }
++            }
++        }
++        1 -> SelfBooking(navController)
++        2 -> OtherBooking(navController)
++    }
++}
++
++@OptIn(ExperimentalMaterial3Api::class)
++@Composable
++fun OtherBooking(navController: NavHostController) {
++
+     val api = RetrofitClient.instance
+     val repository = AppointmentRepository(api)
+     val factory = AppointmentViewModelFactory(repository)
+@@ -384,6 +461,7 @@
+ 
+     var selectedType by remember { mutableStateOf("") }
+ 
++    var citizen by remember { mutableStateOf("") }
+     var selectedTimeIndex by remember { mutableStateOf("") }
+     var symptom by remember { mutableStateOf("") }
+ 
+@@ -410,7 +488,269 @@
+             contentAlignment = Alignment.Center
+         ) {
+             Text(
+-                text = "จองคิวหาหมอ",
++                text = "จองคิวให้ผู้อื่น",
++                color = Color.White,
++                fontSize = 20.sp,
++                fontWeight = FontWeight.Bold
++            )
++        }
++
++        Spacer(modifier = Modifier.height(16.dp))
++
++        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),) {
++
++            // 📅 เลือกวันที่
++            val context = LocalContext.current
++            val calendar = Calendar.getInstance()
++
++            var selectedDate by rememberSaveable { mutableStateOf("") }
++
++            val year = calendar.get(Calendar.YEAR)
++            val month = calendar.get(Calendar.MONTH)
++            val day = calendar.get(Calendar.DAY_OF_MONTH)
++
++            val datePickerDialog = DatePickerDialog(
++                context,
++                { _, selectedYear, selectedMonth, selectedDay ->
++                    val formattedDate = String.format(
++                        "%04d-%02d-%02d",
++                        selectedYear,
++                        selectedMonth + 1,
++                        selectedDay
++                    )
++                    selectedDate = formattedDate
++                },
++                year, month, day
++            )
++
++            Text(
++                text = "รหัสประจำตัวประชาชนของคนไข้",
++                fontWeight = FontWeight.Bold,
++                fontSize = 16.sp
++            )
++
++            Spacer(modifier = Modifier.height(12.dp))
++
++            OutlinedTextField(
++                value = citizen,
++                onValueChange = {citizen = it},
++                placeholder = { Text("รหัสประจำตัวประชาชน 13 หลัก") },
++                modifier = Modifier
++                    .fillMaxWidth(),
++                shape = RoundedCornerShape(5.dp),
++            )
++
++            Text(
++                text = "วันที่จอง",
++                fontWeight = FontWeight.Bold,
++                fontSize = 16.sp
++            )
++
++            Spacer(modifier = Modifier.height(12.dp))
++
++            OutlinedTextField(
++                value = selectedDate,
++                onValueChange = {},
++                placeholder = { Text("เลือกวันที่") },
++                readOnly = true,
++                modifier = Modifier
++                    .fillMaxWidth(),
++                shape = RoundedCornerShape(5.dp),
++                trailingIcon = {
++                    IconButton(onClick = { datePickerDialog.show() }) {
++                        Icon(Icons.Default.DateRange, contentDescription = "Pick Date")
++                    }
++                }
++            )
++
++            Spacer(modifier = Modifier.height(24.dp))
++
++            Text(
++                text = "เลือกรูปแบบการจอง",
++                fontWeight = FontWeight.Bold,
++                fontSize = 16.sp
++            )
++
++            Spacer(modifier = Modifier.height(12.dp))
++
++            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)
++            ) {
++                type.forEach { it ->
++
++                    val isSelected = it == selectedType
++
++                    OutlinedButton(
++                        onClick = { selectedType = it },
++                        modifier = Modifier
++                            .weight(1f)
++                            .height(55.dp),
++                        shape = RoundedCornerShape(5.dp),
++                        border = BorderStroke(
++                            1.dp,
++                            if (isSelected) Color(0xFF2F5DAA)
++                            else Color.Gray
++                        ),
++                        colors = ButtonDefaults.outlinedButtonColors(
++                            containerColor = if (isSelected)
++                                Color(0xFFE3EDFF)
++                            else Color.Transparent
++                        )
++                    ) {
++                        Text(
++                            text = it,
++                            color = Color.Black,
++                            textAlign = TextAlign.Center
++                        )
++                    }
++                }
++            }
++
++            Spacer(modifier = Modifier.height(24.dp))
++
++
++            // ⏰ เลือกช่วงเวลา
++            Text(
++                text = "เลือกช่วงเวลา",
++                fontWeight = FontWeight.Bold,
++                fontSize = 16.sp
++            )
++
++            Spacer(modifier = Modifier.height(12.dp))
++
++            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)
++            ) {
++                timeSlots.forEach { it ->
++
++                    val isSelected = it == selectedTimeIndex
++
++                    OutlinedButton(
++                        onClick = { selectedTimeIndex = it },
++                        modifier = Modifier
++                            .weight(1f)
++                            .height(55.dp),
++                        shape = RoundedCornerShape(5.dp),
++                        border = BorderStroke(
++                            1.dp,
++                            if (isSelected) Color(0xFF2F5DAA)
++                            else Color.Gray
++                        ),
++                        colors = ButtonDefaults.outlinedButtonColors(
++                            containerColor = if (isSelected)
++                                Color(0xFFE3EDFF)
++                            else Color.Transparent
++                        )
++                    ) {
++                        Text(
++                            text = it,
++                            color = Color.Black,
++                            textAlign = TextAlign.Center
++                        )
++                    }
++                }
++            }
++
++            Spacer(modifier = Modifier.height(24.dp))
++
++            // 🩺 อาการเบื้องต้น
++            Text(
++                text = "อาการเบื้องต้น",
++                fontWeight = FontWeight.Bold,
++                fontSize = 16.sp
++            )
++
++            Spacer(modifier = Modifier.height(12.dp))
++
++            OutlinedTextField(
++                value = symptom,
++                onValueChange = { symptom = it },
++                placeholder = { Text("รายละเอียดอาการ...") },
++                modifier = Modifier
++                    .fillMaxWidth()
++                    .height(120.dp),
++                shape = RoundedCornerShape(5.dp)
++            )
++
++            Spacer(modifier = Modifier.height(100.dp))
++
++            // 🔘 ปุ่มยืนยัน
++            Button(
++                onClick = {
++                    if (selectedDate.isNotEmpty() && selectedType.isNotEmpty() && selectedTimeIndex.isNotEmpty() && symptom.isNotEmpty()){
++                        val appointment = Appointment(
++                            idAppointment = null,
++                            patient_iduser = iduser,
++                            booking_by_user_id = iduser,
++                            Appointment_date = selectedDate,
++                            time_slot = selectedTimeIndex,
++                            initial_symptom = symptom,
++                            queue_number = null,
++                            check_in_time = null,
++                            status = "Pending",
++                            booking_type = selectedType
++                        )
++                        viewModel.createAppointment(appointment)
++                        navController.popBackStack()
++                    }else{
++
++                    }
++                },
++
++                modifier = Modifier
++                    .fillMaxWidth()
++                    .height(55.dp),
++                shape = RoundedCornerShape(50),
++                colors = ButtonDefaults.buttonColors(
++                    containerColor = Color(0xFF4A8C8E)
++                )
++            ) {
++                Text(
++                    text = "ยืนยันการจองคิว",
++                    color = Color.White,
++                    fontSize = 16.sp,
++                    fontWeight = FontWeight.Bold
++                )
++            }
++        }
++    }
++}
++
++@OptIn(ExperimentalMaterial3Api::class)
++@Composable
++fun SelfBooking(navController: NavHostController) {
++    val api = RetrofitClient.instance
++    val repository = AppointmentRepository(api)
++    val factory = AppointmentViewModelFactory(repository)
++    val viewModel: AppointmentViewModel = viewModel(factory = factory)
++
++    var selectedType by remember { mutableStateOf("") }
++
++    var selectedTimeIndex by remember { mutableStateOf("") }
++    var symptom by remember { mutableStateOf("") }
++
++    val timeSlots = listOf(
++        "09:00 - 12:00",
++        "13:00 - 16:00"
++    )
++    val type = listOf(
++        "Online","Walk-in"
++    )
++
++    Column(
++        modifier = Modifier
++            .fillMaxSize()
++            .background(Color(0xFFF2F2F2))
++    ) {
++
++        // 🔵 Header
++        Box(
++            modifier = Modifier
++                .fillMaxWidth()
++                .background(Color(0xFF2F5DAA))
++                .padding(vertical = 20.dp),
++            contentAlignment = Alignment.Center
++        ) {
++            Text(
++                text = "จองคิวให้ตัวเอง",
+                 color = Color.White,
+                 fontSize = 20.sp,
+                 fontWeight = FontWeight.Bold
+@@ -512,7 +852,6 @@
+ 
+             Spacer(modifier = Modifier.height(24.dp))
+ 
+-
+             // ⏰ เลือกช่วงเวลา
+             Text(
+                 text = "เลือกช่วงเวลา",
+@@ -583,8 +922,8 @@
+                     if (selectedDate.isNotEmpty() && selectedType.isNotEmpty() && selectedTimeIndex.isNotEmpty() && symptom.isNotEmpty()){
+                         val appointment = Appointment(
+                             idAppointment = null,
+-                            patient_iduser = UserSession.iduser,
+-                            booking_by_user_id = UserSession.iduser,
++                            patient_iduser = iduser,
++                            booking_by_user_id = iduser,
+                             Appointment_date = selectedDate,
+                             time_slot = selectedTimeIndex,
+                             initial_symptom = symptom,
+Index: app/src/main/java/com/example/myapplication100/DataClass/Appointment_Examination/AppointmentRespository.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.example.myapplication100.DataClass.Appointment_Examination\r\n\r\nimport retrofit2.Response\r\nimport com.example.myapplication100.DataClass.HospitalApiService\r\n\r\nclass AppointmentRepository(\r\n    private val api: HospitalApiService\r\n) {\r\n    suspend fun createAppointment(\r\n        appointment: Appointment\r\n    ): Response<AppointmentResponse> {\r\n        return api.createAppointment(appointment)\r\n    }\r\n\r\n    suspend fun getAppointmentsByUser(patient_iduser: Int): List<Appointment>? {\r\n        val response = api.getAppointmentsByUser(patient_iduser)\r\n\r\n        return if (response.isSuccessful) {\r\n            response.body()\r\n        } else {\r\n            null\r\n        }\r\n    }\r\n\r\n\r\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/example/myapplication100/DataClass/Appointment_Examination/AppointmentRespository.kt b/app/src/main/java/com/example/myapplication100/DataClass/Appointment_Examination/AppointmentRespository.kt
+--- a/app/src/main/java/com/example/myapplication100/DataClass/Appointment_Examination/AppointmentRespository.kt	(revision 9b5e8ccf05e5107bb74d436e90d68525b00b124c)
++++ b/app/src/main/java/com/example/myapplication100/DataClass/Appointment_Examination/AppointmentRespository.kt	(date 1772824751670)
+@@ -22,5 +22,12 @@
+         }
+     }
+ 
++    suspend fun getAllAppointments(): Response<List<Appointment>> {
++        return api.getAllAppointments()
++    }
++
++    suspend fun createAppointmentFamily(data: Appointment): Response<AppointmentResponse> {
++        return api.createAppointment(data)
++    }
+ 
+ }
+\ No newline at end of file
+Index: .idea/gradle.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<project version=\"4\">\r\n  <component name=\"GradleSettings\">\r\n    <option name=\"linkedExternalProjectsSettings\">\r\n      <GradleProjectSettings>\r\n        <option name=\"testRunner\" value=\"CHOOSE_PER_TEST\" />\r\n        <option name=\"externalProjectPath\" value=\"$PROJECT_DIR$\" />\r\n        <option name=\"gradleJvm\" value=\"#GRADLE_LOCAL_JAVA_HOME\" />\r\n      </GradleProjectSettings>\r\n    </option>\r\n  </component>\r\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/gradle.xml b/.idea/gradle.xml
+--- a/.idea/gradle.xml	(revision 9b5e8ccf05e5107bb74d436e90d68525b00b124c)
++++ b/.idea/gradle.xml	(date 1772824751667)
+@@ -1,11 +1,18 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+ <project version="4">
++  <component name="GradleMigrationSettings" migrationVersion="1" />
+   <component name="GradleSettings">
+     <option name="linkedExternalProjectsSettings">
+       <GradleProjectSettings>
+         <option name="testRunner" value="CHOOSE_PER_TEST" />
+         <option name="externalProjectPath" value="$PROJECT_DIR$" />
+         <option name="gradleJvm" value="#GRADLE_LOCAL_JAVA_HOME" />
++        <option name="modules">
++          <set>
++            <option value="$PROJECT_DIR$" />
++            <option value="$PROJECT_DIR$/app" />
++          </set>
++        </option>
+       </GradleProjectSettings>
+     </option>
+   </component>
+Index: .idea/misc.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<project version=\"4\">\r\n  <component name=\"ExternalStorageConfigurationManager\" enabled=\"true\" />\r\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/misc.xml b/.idea/misc.xml
+--- a/.idea/misc.xml	(revision 9b5e8ccf05e5107bb74d436e90d68525b00b124c)
++++ b/.idea/misc.xml	(date 1772824751668)
+@@ -1,4 +1,6 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+ <project version="4">
+   <component name="ExternalStorageConfigurationManager" enabled="true" />
++  <component name="ProjectRootManager" version="2" default="true">
++    <output url="file://$PROJECT_DIR$/build/classes" />
++  </component>
+ </project>
+\ No newline at end of file

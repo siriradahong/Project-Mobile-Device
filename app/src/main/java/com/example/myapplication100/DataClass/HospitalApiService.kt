@@ -50,15 +50,25 @@ interface HospitalApiService {
     @GET("appointments/today")
     suspend fun getTodayQueue(): Response<List<Appointment>>
 
+    @GET("appointments")
+    suspend fun getAllAppointments(): Response<List<Appointment>>
+
     @GET("appointments/user/{patient_iduser}")
     suspend fun getAppointmentsByUser(
         @Path("patient_iduser") patient_iduser: Int
     ): Response<List<Appointment>>
 
+    // self booking
     @POST("appointments")
     suspend fun createAppointment(
         @Body appointment: Appointment
     ): Response<AppointmentResponse>
+
+    //other booking
+    @POST("appointments/book-for-family")
+    suspend fun createAppointmentFamily(
+        @Body request: AppointmentFamilyRequest
+    ): Response<AppointmentFamilyResponse>
 
     @PUT("examination/vitals/{id}")
     suspend fun updateVitals(
@@ -95,6 +105,7 @@ interface HospitalApiService {
 
     // ฟังก์ชันเดิมอื่นๆ...
     @GET("family/members/{userId}")
-    suspend fun getFamilyMembersByUserId(@Path("userId") userId: Int): Response<List<FamilyMemberDetail>>
+    suspend fun getFamilyMembersByUserId(@Path("userId") userId: Int
+    ): Response<List<FamilyMemberDetail>>
 
 }
