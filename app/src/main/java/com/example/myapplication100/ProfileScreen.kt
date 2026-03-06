@@ -90,6 +90,18 @@ fun ProfileScreen() {
         }
 
         Spacer(Modifier.height(24.dp))
+
+        ExpandableCard(title = "สมาชิกครอบครัว") {
+            FamilySection(userId = userId)
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        ExpandableCard(title = "จัดการรายชื่อครอบครัว") {
+            FamilyMemberListView(userId = userId)
+        }
+
+        Spacer(Modifier.height(12.dp))
     }
 }
 

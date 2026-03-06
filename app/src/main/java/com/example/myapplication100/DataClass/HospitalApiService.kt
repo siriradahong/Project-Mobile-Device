@@ -9,7 +9,8 @@ import retrofit2.Response
 import retrofit2.http.*
 import com.example.myapplication100.DataClass.Login.*
 import com.example.myapplication100.DataClass.Appointment_Examination.CurrentMedicine
-
+import com.example.myapplication100.DataClass.Family.FamilyMemberDetail
+import com.example.myapplication100.DataClass.Family.FamilyResponse
 
 
 interface HospitalApiService {
@@ -63,5 +64,32 @@ interface HospitalApiService {
     @POST("examination/diagnose")
     suspend fun saveTreatment(@Body treatment: Examination): Response<Unit>
 
+    @GET("family/all-groups")
+    suspend fun getAllFamilies(): Response<List<FamilyResponse>>
+
+    @POST("family/create")
+    suspend fun createFamily(@Body request: Map<String, String>): Response<Map<String, Any>>
+
+    // แก้ไข: ต้องเพิ่ม @FormUrlEncoded ถ้าจะใช้ @Field
+    @FormUrlEncoded
+    @POST("family/add-member")
+    suspend fun addMemberToFamily(
+        @Field("idFamily") idFamily: Int,
+        @Field("citizenId") citizenId: String
+    ): Response<Unit>
+
+    @DELETE("family/remove-member/{iduser}")
+    suspend fun removeMemberFromFamily(
+        @Path("iduser") iduser: Int
+    ): Response<Unit>
+
+    @DELETE("family/delete/{idFamily}")
+    suspend fun deleteWholeFamilyById(
+        @Path("idFamily") idFamily: Int
+    ): Response<Unit>
+
+    // ฟังก์ชันเดิมอื่นๆ...
+    @GET("family/members/{userId}")
+    suspend fun getFamilyMembersByUserId(@Path("userId") userId: Int): Response<List<FamilyMemberDetail>>
 
 }
