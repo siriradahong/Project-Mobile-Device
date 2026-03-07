@@ -32,7 +32,7 @@ fun DoctorHomeScreen(nav: NavHostController, viewModel: AppointmentViewModel) {
     LaunchedEffect(Unit) {
         while (true) {
             viewModel.loadAllAppointments()
-            delay(1000)
+            delay(5000)
         }
     }
 

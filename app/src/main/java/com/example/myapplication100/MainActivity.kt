@@ -87,92 +87,177 @@ fun App() {
         }
     }
 }
-
 @Composable
 fun HomeScreen(nav: NavHostController, viewModel: AppointmentViewModel) {
-    val appointments by viewModel.appointments.collectAsState()
-    val currentQueue by viewModel.currentQueue
-    val remainingQueue by viewModel.remainingQueue
+    // 1. ดึงข้อมูล State ทั้งหมด
+    val allAppointments by viewModel.allAppointments.collectAsState()
+    val myAppointments by viewModel.appointments.collectAsState()
 
-    // 🟢 ย้ายมาไว้ตรงนี้สัส! หน้าแรกต้องเป็นคนดึงข้อมูล
+    // 2. หาคิวปัจจุบันของคลินิก (Live)
+    val currentClinicPatient = allAppointments.firstOrNull { it.status == "In-room" }
+        ?: allAppointments.firstOrNull { it.status == "Screening" }
+
+    // 3. หาคิว "ของฉัน" ที่กำลังจะมาถึง (กรองเอาเฉพาะคนที่มีสถานะยังไม่เสร็จ)
+    val myNextQueue = myAppointments.firstOrNull { it.status != "Success" && it.status != "Cancelled" }
+
     LaunchedEffect(Unit) {
         while (true) {
-            // ดึงนัดหมายเฉพาะของฉัน (ห้ามแสดงย้อนหลัง ซึ่งกูแก้ SQL ใน Node.js ให้แล้ว)
-            viewModel.loadAppointments(UserSession.iduser)
-
-            // ดึงเลขคิวปัจจุบัน (ไอ้เลขส้มๆ)
-            viewModel.loadCurrentQueueStatus()
-
+            viewModel.loadAllAppointments() // ดึงรวม
+            viewModel.loadAppointments(UserSession.iduser) // ดึงส่วนตัว (สำคัญ!)
             delay(5000)
         }
     }
 
     Column(modifier = Modifier.fillMaxSize().background(Color(0xFF21539D))) {
+        // --- Header ---
         Box(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
             Text(text = "หน้าแรก", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
         }
-        Surface(modifier = Modifier.fillMaxSize(), color = Color.White, shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)) {
+
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = Color.White,
+            shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)
+        ) {
             LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
-                item { Spacer(modifier = Modifier.height(20.dp)) }
                 item {
-                    Row(modifier = Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(modifier = Modifier.size(45.dp).clip(CircleShape).background(Color(0xFFE0E0E0)), Alignment.Center) {
-                                Icon(Icons.Default.Groups, null, tint = Color.Gray)
+                    Text("คิวของคุณ", fontWeight = FontWeight.Bold, color = Color(0xFF21539D), fontSize = 18.sp)
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    if (myNextQueue != null) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(20.dp)),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD)), // สีฟ้าอ่อน
+                            border = BorderStroke(2.dp, Color(0xFF21539D)),
+                            shape = RoundedCornerShape(20.dp)
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(20.dp)) {
+                                Text(text = myNextQueue.queue_number ?: "รอคิว", fontSize = 70.sp, fontWeight = FontWeight.Black, color = Color(0xFF21539D))
+                                Text("สถานะของคุณ: ${myNextQueue.status}", fontWeight = FontWeight.Bold, color = Color(0xFF1976D2))
+                                Text("เวลานัด: ${myNextQueue.time_slot}", fontSize = 14.sp, color = Color.Gray)
                             }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text("ยินดีต้อนรับ, ${UserSession.firstName}", fontSize = 16.sp, fontWeight = FontWeight.Medium)
                         }
-                        Icon(Icons.Default.Notifications, null, tint = Color(0xFF21539D), modifier = Modifier.size(28.dp))
-                    }
-                }
-                item { Spacer(modifier = Modifier.height(24.dp)) }
-                item {
-                    Card(modifier = Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(20.dp)), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Box(modifier = Modifier.fillMaxWidth().background(Color(0xFFFFA726)).padding(vertical = 10.dp), Alignment.Center) {
-                                Text("กำลังตรวจคิว", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                            }
-                            Text(text = currentQueue, fontSize = 80.sp, fontWeight = FontWeight.Black, color = Color(0xFF21539D))
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("เหลือก่อนถึงคิวคุณ ", fontSize = 16.sp)
-                                Text("$remainingQueue", color = Color.Red, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
-                                Text(" คิว", fontSize = 16.sp)
-                            }
-                            Spacer(modifier = Modifier.height(20.dp))
+                    } else {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
+                            shape = RoundedCornerShape(20.dp)
+                        ) {
+                            Text("คุณยังไม่มีนัดหมายในวันนี้", modifier = Modifier.padding(20.dp), color = Color.Gray, textAlign = TextAlign.Center)
                         }
                     }
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
-                item { Spacer(modifier = Modifier.height(24.dp)) }
+
+                // --- [HIGHLIGHT] คิวของคุณ ---
+// --- [LIVE] คิวปัจจุบันของคลินิก (ดีไซน์ใหม่ตามรูป) ---
                 item {
-                    Button(onClick = { nav.navigate("booking") }, modifier = Modifier.fillMaxWidth().height(70.dp), shape = RoundedCornerShape(15.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3F7F8B))) {
-                        Icon(Icons.Default.CalendarMonth, null)
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text("จองคิวใหม่", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Text("กำลังเรียกตรวจ (Live)", fontWeight = FontWeight.Bold, color = Color.Gray, fontSize = 14.sp)
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    if (currentClinicPatient != null) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .shadow(10.dp, RoundedCornerShape(20.dp)),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            shape = RoundedCornerShape(20.dp)
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                // Header สีส้ม พร้อม Status
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(Color(0xFFFFB74D)) // สีส้มอ่อนตามรูป
+                                        .padding(vertical = 8.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = "กำลังตรวจคิว",
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 18.sp
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        // เพิ่ม Status Badge เข้าไปในแถบสีส้ม
+                                        BadgeStatus(currentClinicPatient.status ?: "")
+                                    }
+                                }
+
+                                // เลขคิวขนาดใหญ่
+                                Text(
+                                    text = currentClinicPatient.queue_number ?: "-",
+                                    fontSize = 100.sp, // ขนาดใหญ่พิเศษตามรูป
+                                    fontWeight = FontWeight.Black,
+                                    color = Color.Black,
+                                    modifier = Modifier.padding(vertical = 10.dp)
+                                )
+
+                                // คำนวณคิวที่เหลือ (ถ้าเรามีคิวในระบบ)
+                                if (myNextQueue != null) {
+                                    // หา index ของเราและคิวปัจจุบันในรายการทั้งหมดเพื่อหาผลต่าง
+                                    val allPending = allAppointments.filter { it.status != "Success" && it.status != "Cancelled" }
+                                    val currentIdx = allPending.indexOfFirst { it.queue_number == currentClinicPatient.queue_number }
+                                    val myIdx = allPending.indexOfFirst { it.queue_number == myNextQueue.queue_number }
+
+                                    val remainingQueues = if (myIdx > currentIdx) myIdx - currentIdx else 0
+
+                                    if (remainingQueues > 0) {
+                                        Row(modifier = Modifier.padding(bottom = 20.dp)) {
+                                            Text("เหลือก่อนถึงคิวคุณ ", color = Color.Gray, fontSize = 16.sp)
+                                            Text("$remainingQueues คิว", color = Color.Red, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    } else if (myNextQueue.queue_number == currentClinicPatient.queue_number) {
+                                        Text("ถึงคิวของคุณแล้ว!", color = Color(0xFF4CAF50), fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 20.dp))
+                                    }
+                                } else {
+                                    Text("กรุณาจองคิวเพื่อรับบริการ", color = Color.Gray, modifier = Modifier.padding(bottom = 20.dp))
+                                }
+                            }
+                        }
+                    } else {
+                        NoPatientCard()
                     }
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
+
+                // --- [ACTION] ปุ่มจองคิว ---
                 item {
-                    Spacer(modifier = Modifier.height(30.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.LocationOn, null, tint = Color.Red)
-                        Text("นัดหมายของฉัน (เฉพาะคุณ)", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Button(
+                        onClick = { nav.navigate("booking") },
+                        modifier = Modifier.fillMaxWidth().height(60.dp),
+                        shape = RoundedCornerShape(15.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3F7F8B))
+                    ) {
+                        Icon(Icons.Default.Add, null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("จองคิวใหม่", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     }
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
+
+                // --- [LIST] คิวรอตรวจทั้งหมด ---
+                item {
+                    Text("คิวรอตรวจทั้งหมด", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Gray)
                     Spacer(modifier = Modifier.height(10.dp))
                 }
-                if (appointments.isEmpty()) {
-                    item { Text("ไม่มีรายการนัดหมายวันนี้", modifier = Modifier.padding(20.dp), color = Color.Gray) }
+
+                val pendingQueues = allAppointments.filter { it.status == "Pending" || it.status == "Screening" }
+                if (pendingQueues.isEmpty()) {
+                    item { Text("ไม่มีคิวรอตรวจ", color = Color.LightGray) }
                 } else {
-                    items(appointments) { app ->
-                        AppointmentCard("${app.Appointment_date} | เวลา: ${app.time_slot}\nอาการ: ${app.initial_symptom}\nสถานะ: ${app.status}")
-                        Spacer(modifier = Modifier.height(12.dp))
+                    items(pendingQueues.take(5)) { patient ->
+                        NextQueueCard(patient.queue_number ?: "-", "หมายเลขคิวรอรับบริการ")
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
+
                 item { Spacer(modifier = Modifier.height(100.dp)) }
             }
         }
     }
 }
-
 @Composable
 fun BookingScreen(navController: NavHostController, viewModel: AppointmentViewModel) {
     var screenState by remember { mutableStateOf(0) }

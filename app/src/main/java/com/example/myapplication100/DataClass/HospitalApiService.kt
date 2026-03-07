@@ -29,7 +29,7 @@ interface HospitalApiService {
     @GET("appointments")
     suspend fun getAllAppointments(): Response<List<Appointment>>
 
-    @GET("appointments/user/{patient_iduser}")
+    @GET("appointments/patient/{patient_iduser}") // 👈 แก้ให้ตรงกับ Node.js
     suspend fun getAppointmentsByUser(
         @Path("patient_iduser") patient_iduser: Int
     ): Response<List<Appointment>>
