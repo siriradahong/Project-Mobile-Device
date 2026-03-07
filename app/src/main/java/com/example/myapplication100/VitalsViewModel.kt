@@ -19,17 +19,17 @@ class VitalsViewModel : ViewModel() {
 
             try {
 
-                RetrofitClient.api.saveVitals(vitals)
+                val response = RetrofitClient.api.saveVitals(vitals)
 
-                Toast.makeText(context, "บันทึกข้อมูลสำเร็จ", Toast.LENGTH_SHORT).show()
-
-                onSuccess()
+                if (response.isSuccessful) {
+                    onSuccess()
+                } else {
+                    Toast.makeText(context,"เกิดข้อผิดพลาด",Toast.LENGTH_SHORT).show()
+                }
 
             } catch (e: Exception) {
 
-                Toast.makeText(context, "เกิดข้อผิดพลาด", Toast.LENGTH_SHORT).show()
-
-                Log.e("VITALS", "Error", e)
+                Toast.makeText(context,"เกิดข้อผิดพลาด",Toast.LENGTH_SHORT).show()
 
             }
 

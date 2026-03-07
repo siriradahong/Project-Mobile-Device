@@ -4,8 +4,11 @@ package com.example.myapplication100
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
+
 @Composable
 fun NavGraph(navController: NavHostController) {
 
@@ -21,14 +24,13 @@ fun NavGraph(navController: NavHostController) {
                 nav = navController
             )
         }
-
         // ================= VITALS SCREEN =================
         composable(
             route = "vitals/{appointmentId}/{queue}/{name}"
         ) { backStackEntry ->
 
             val appointmentId =
-                backStackEntry.arguments?.getString("appointmentId")?.toInt() ?: 0
+                backStackEntry.arguments?.getString("appointmentId")?.toIntOrNull() ?: 0
 
             val queueNumber =
                 backStackEntry.arguments?.getString("queue") ?: ""
@@ -46,3 +48,6 @@ fun NavGraph(navController: NavHostController) {
         }
     }
 }
+
+
+

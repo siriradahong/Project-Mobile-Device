@@ -17,7 +17,7 @@ interface ApiHospitalService {
     @POST("vitals")
     suspend fun saveVitals(
         @Body vitals: VitalsRequest
-    )
+    ): Response<Unit>
 
 
 }

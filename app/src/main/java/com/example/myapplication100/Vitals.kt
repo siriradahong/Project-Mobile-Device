@@ -6,5 +6,6 @@ data class Vitals(
     val heartRate: Int,
     val weight: Double,
     val height: Double,
-    val temperature: Double
+    val temperature: Double,
+    val note: String
 )

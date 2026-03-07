@@ -120,8 +120,7 @@ fun QueueControlScreen(modifier: Modifier = Modifier,
                     Color(0xFFF4F4F4),
                     RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp)
                 )
-                .padding(20.dp)
-                .verticalScroll(rememberScrollState()),
+                .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
 
@@ -199,11 +198,6 @@ fun QueueControlScreen(modifier: Modifier = Modifier,
                 fontSize = 18.sp
             )
 
-
-            LaunchedEffect(Unit) {
-                viewModel.fetchQueue()
-            }
-
             LazyColumn {
 
                 items(queueList) { item ->
@@ -216,6 +210,7 @@ fun QueueControlScreen(modifier: Modifier = Modifier,
                         isScreened = item.idexamination != null,
                         nav = nav
                     )
+                    Spacer(Modifier.height(6.dp))
 
                 }
 
@@ -313,7 +308,7 @@ fun QueueItemCard(
             Button(
                 onClick = {
 
-                    nav?.navigate("vitals/$queueNumber/${Uri.encode(name)}")
+                    nav?.navigate("vitals/$appointmentId/$queueNumber/${Uri.encode(name)}")
 
                 },
                 colors = ButtonDefaults.buttonColors(
