@@ -47,7 +47,7 @@ import androidx.navigation.NavController
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { App() }
+        setContent { NurseScreen() }
     }
 }
 
@@ -67,6 +67,19 @@ fun App() {
             composable("booking") { BookingScreen(nav) }
         }
     }
+}
+
+@Composable
+fun NurseScreen(modifier: Modifier = Modifier) {
+
+    val navController = rememberNavController()
+
+    Surface(
+        modifier = modifier.fillMaxSize()
+    ) {
+        NavGraph(navController = navController)
+    }
+
 }
 
 @Composable
