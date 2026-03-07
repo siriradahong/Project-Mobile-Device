@@ -2,13 +2,13 @@ package com.example.myapplication100
 
 import android.app.DatePickerDialog
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -18,6 +18,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -27,21 +29,14 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.*
-import com.example.myapplication100.DataClass.Appointment_Examination.Appointment
-import com.example.myapplication100.DataClass.Appointment_Examination.AppointmentRepository
-import com.example.myapplication100.DataClass.Appointment_Examination.AppointmentViewModel
-import com.example.myapplication100.DataClass.Appointment_Examination.AppointmentViewModelFactory
-import com.example.myapplication100.LoginRegis.*
-import java.util.Calendar
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import com.example.myapplication100.DataClass.Appointment_Examination.*
 import com.example.myapplication100.DataClass.Family.FamilyMemberDetail
+import com.example.myapplication100.LoginRegis.*
 import com.example.myapplication100.LoginRegis.UserSession.iduser
+import com.example.myapplication100.DoctorScreen.*
+import com.example.myapplication100.NurseScreen.*
 import kotlinx.coroutines.delay
-import org.intellij.lang.annotations.JdkConstants
-
+import java.util.Calendar
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,11 +51,21 @@ fun App() {
     val navBackStackEntry by nav.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: ""
 
+    val api = RetrofitClient.instance
+    val repository = AppointmentRepository(api)
+    val factory = AppointmentViewModelFactory(repository)
+    val viewModel: AppointmentViewModel = viewModel(factory = factory)
+
     Scaffold(
         bottomBar = {
-            if (currentRoute.startsWith("home") || currentRoute == "history" || currentRoute == "profile" || currentRoute == "booking") {
-                BottomBar(nav)
-            }
+            val showBottomBar = currentRoute.startsWith("home") ||
+                    currentRoute == "history" ||
+                    currentRoute == "profile" ||
+                    currentRoute == "booking" ||
+                    currentRoute == "doctor_home" ||
+                    currentRoute == "nurse_home"
+
+            if (showBottomBar) { BottomBar(nav) }
         }
     ) { pad ->
         NavHost(nav, startDestination = "login", Modifier.padding(pad)) {
@@ -68,922 +73,257 @@ fun App() {
             composable("register1") { RegisterStep1Screen(nav) }
             composable("register2") { RegisterStep2Screen(nav) }
 
-            // หน้า Home รับชื่อมาแสดง
-            composable("home/{fname}/{lname}") { entry ->
-                val fname = entry.arguments?.getString("fname") ?: "User"
-                val lname = entry.arguments?.getString("lname") ?: ""
-                HomeScreen(nav)
-            }
-
-            composable("booking") { BookingScreen(nav) }
-            composable("history") {
-                HistoryScreen(UserSession.iduser)
-            }
+            composable("home/{fname}/{lname}") { HomeScreen(nav, viewModel) }
+            composable("booking") { BookingScreen(nav, viewModel) }
+            composable("history") { HistoryScreen(UserSession.iduser) }
             composable("profile") { ProfileScreen() }
 
-
+            composable("doctor_home") { DoctorHomeScreen(nav, viewModel) }
+            composable("doctor_treatment/{appointmentId}") { entry ->
+                val id = entry.arguments?.getString("appointmentId")?.toIntOrNull() ?: 0
+                DoctorTreatmentScreen(nav, id, viewModel)
+            }
+            composable("nurse_home") { NurseHomeScreen(nav, viewModel) }
         }
-
-
     }
 }
 
 @Composable
-fun HomeScreen(nav: NavHostController) {
-    // 1. เตรียม ViewModel และดึงข้อมูล
-    val api = RetrofitClient.instance
-    val repository = AppointmentRepository(api)
-    val factory = AppointmentViewModelFactory(repository)
-    val viewModel: AppointmentViewModel = viewModel(factory = factory)
-
+fun HomeScreen(nav: NavHostController, viewModel: AppointmentViewModel) {
     val appointments by viewModel.appointments.collectAsState()
-    val allAppointments by viewModel.allAppointments.collectAsState()
+    val currentQueue by viewModel.currentQueue
+    val remainingQueue by viewModel.remainingQueue
 
+    // 🟢 ย้ายมาไว้ตรงนี้สัส! หน้าแรกต้องเป็นคนดึงข้อมูล
     LaunchedEffect(Unit) {
         while (true) {
-            viewModel.loadAppointments(iduser)
-            viewModel.loadAllAppointments(iduser)
+            // ดึงนัดหมายเฉพาะของฉัน (ห้ามแสดงย้อนหลัง ซึ่งกูแก้ SQL ใน Node.js ให้แล้ว)
+            viewModel.loadAppointments(UserSession.iduser)
+
+            // ดึงเลขคิวปัจจุบัน (ไอ้เลขส้มๆ)
+            viewModel.loadCurrentQueueStatus()
 
             delay(5000)
         }
     }
 
-    val currentQueue = viewModel.currentQueue.value
-    val remaining = viewModel.remainingQueue.value
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF21539D)) // สีน้ำเงินด้านบน
-    ) {
-        // ส่วนหัว "หน้าแรก"
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 16.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "หน้าแรก",
-                color = Color.White,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
-            )
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFF21539D))) {
+        Box(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
+            Text(text = "หน้าแรก", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
         }
-
-        // พื้นหลังสีขาวโค้งมน
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = Color.White,
-            shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)
-        ) {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
+        Surface(modifier = Modifier.fillMaxSize(), color = Color.White, shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)) {
+            LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
                 item { Spacer(modifier = Modifier.height(20.dp)) }
-
-                // แถวโปรไฟล์และแจ้งเตือน
                 item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
+                    Row(modifier = Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            // จำลองรูปโปรไฟล์
-                            Box(
-                                modifier = Modifier
-                                    .size(45.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFFE0E0E0)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(Icons.Default.Groups, contentDescription = null, tint = Color.Gray)
+                            Box(modifier = Modifier.size(45.dp).clip(CircleShape).background(Color(0xFFE0E0E0)), Alignment.Center) {
+                                Icon(Icons.Default.Groups, null, tint = Color.Gray)
                             }
                             Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = "สมาชิกในครอบครัว",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Medium
-                            )
+                            Text("ยินดีต้อนรับ, ${UserSession.firstName}", fontSize = 16.sp, fontWeight = FontWeight.Medium)
                         }
-
-                        // ไอคอนแจ้งเตือนพร้อมจุดแดง
-                        Box {
-                            Icon(
-                                imageVector = Icons.Default.Notifications,
-                                contentDescription = "Notifications",
-                                tint = Color(0xFF21539D),
-                                modifier = Modifier.size(28.dp)
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .size(10.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.Red)
-                                    .align(Alignment.TopEnd)
-                            )
-                        }
+                        Icon(Icons.Default.Notifications, null, tint = Color(0xFF21539D), modifier = Modifier.size(28.dp))
                     }
                 }
-
                 item { Spacer(modifier = Modifier.height(24.dp)) }
-
-                // การ์ดแสดงคิว
                 item {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .shadow(8.dp, RoundedCornerShape(20.dp)),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White)
-                    ) {
+                    Card(modifier = Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(20.dp)), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(Color(0xFFFFA726)) // สีส้ม
-                                    .padding(vertical = 10.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "กำลังตรวจคิว",
-                                    color = Color.White,
-                                    fontSize = 24.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
+                            Box(modifier = Modifier.fillMaxWidth().background(Color(0xFFFFA726)).padding(vertical = 10.dp), Alignment.Center) {
+                                Text("กำลังตรวจคิว", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                             }
-
-                            Spacer(modifier = Modifier.height(10.dp))
-
-                            Text(
-                                text = viewModel.currentQueue.value, // เลขคิวจริง
-                                fontSize = 100.sp,
-                                fontWeight = FontWeight.Black
-                            )
-
+                            Text(text = currentQueue, fontSize = 80.sp, fontWeight = FontWeight.Black, color = Color(0xFF21539D))
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(text = "เหลือก่อนถึงคิวคุณ ", fontSize = 18.sp)
-                                Text(
-                                    text = "${viewModel.remainingQueue.value}", // จำนวนคิวที่เหลือจริง
-                                    color = Color.Red,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(text = " คิว", fontSize = 18.sp)
+                                Text("เหลือก่อนถึงคิวคุณ ", fontSize = 16.sp)
+                                Text("$remainingQueue", color = Color.Red, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
+                                Text(" คิว", fontSize = 16.sp)
                             }
                             Spacer(modifier = Modifier.height(20.dp))
                         }
                     }
                 }
-
                 item { Spacer(modifier = Modifier.height(24.dp)) }
-
-                // ปุ่มจองคิวใหม่
                 item {
-                    Button(
-                        onClick = { nav.navigate("booking") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(80.dp)
-                            .shadow(4.dp, RoundedCornerShape(15.dp)),
-                        shape = RoundedCornerShape(15.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3F7F8B)) // สีเขียวหัวเป็ด
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.CalendarMonth,
-                                contentDescription = null,
-                                modifier = Modifier.size(36.dp)
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Text(
-                                text = "จองคิวใหม่",
-                                fontSize = 30.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                    Button(onClick = { nav.navigate("booking") }, modifier = Modifier.fillMaxWidth().height(70.dp), shape = RoundedCornerShape(15.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3F7F8B))) {
+                        Icon(Icons.Default.CalendarMonth, null)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text("จองคิวใหม่", fontSize = 22.sp, fontWeight = FontWeight.Bold)
                     }
                 }
-
-                item { Spacer(modifier = Modifier.height(30.dp)) }
-
-                // หัวข้อนัดหมาย
                 item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Default.LocationOn,
-                            contentDescription = null,
-                            tint = Color.Red,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "นัดหมายของฉัน",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                    Spacer(modifier = Modifier.height(30.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.LocationOn, null, tint = Color.Red)
+                        Text("นัดหมายของฉัน (เฉพาะคุณ)", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
+                if (appointments.isEmpty()) {
+                    item { Text("ไม่มีรายการนัดหมายวันนี้", modifier = Modifier.padding(20.dp), color = Color.Gray) }
+                } else {
+                    items(appointments) { app ->
+                        AppointmentCard("${app.Appointment_date} | เวลา: ${app.time_slot}\nอาการ: ${app.initial_symptom}\nสถานะ: ${app.status}")
+                        Spacer(modifier = Modifier.height(12.dp))
                     }
                 }
-
-                item { Spacer(modifier = Modifier.height(10.dp)) }
-
-
-                // 3. แสดงรายการนัดหมายจริง
-                items(appointments) { app ->
-                    AppointmentCard("${app.Appointment_date} ${app.time_slot} - ${app.initial_symptom}")
-                    Spacer(modifier = Modifier.height(12.dp))
-                }
-
-                item { Spacer(modifier = Modifier.height(100.dp)) } // เผื่อที่ให้ Bottom Bar
+                item { Spacer(modifier = Modifier.height(100.dp)) }
             }
         }
     }
 }
-@Composable
-fun AppointmentCard(text: String) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(2.dp, RoundedCornerShape(12.dp)),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(0.5.dp, Color.LightGray)
-    ) {
-        Box(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = text,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Normal,
-                color = Color.Black
-            )
-        }
-    }
-}
-@Composable
-fun BottomBar(navController: NavHostController) {
-    // ตรวจสอบหน้าปัจจุบันเพื่อให้ปุ่ม Highlight สีได้ถูกต้อง
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
-
-    NavigationBar(
-        containerColor = Color.White,
-        tonalElevation = 8.dp
-    ) {
-        NavigationBarItem(
-            icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-            label = { Text("หน้าแรก") },
-            selected = currentRoute?.startsWith("home") == true,
-            onClick = {
-
-                val fn = UserSession.firstName.ifEmpty { "User" }
-                val ln = UserSession.lastName.ifEmpty { " " }
-                navController.navigate("home/$fn/$ln") {
-                    popUpTo(navController.graph.startDestinationId) { saveState = true }
-                    launchSingleTop = true
-                    restoreState = true
-
-                }
-            }
-        )
-        NavigationBarItem(
-            icon = { Icon(Icons.Default.DateRange, contentDescription = "Booking") },
-            label = { Text("จองคิว") },
-            selected = currentRoute == "booking",
-            onClick = { navController.navigate("booking") }
-        )
-        NavigationBarItem(
-            icon = { Icon(Icons.Default.List, contentDescription = "History") },
-            label = { Text("ประวัติ") },
-            selected = currentRoute == "history",
-            onClick = { navController.navigate("history") }
-        )
-        NavigationBarItem(
-            icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
-            label = { Text("โปรไฟล์") },
-            selected = currentRoute == "profile",
-            onClick = { navController.navigate("profile") }
-        )
-    }
-}
 
 @Composable
-fun CenterScreen(title: String) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text = title, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
-    }
-}
-
-// ถ้าคุณยังไม่มี BookingScreen ให้เพิ่มตัวนี้ไว้ชั่วคราวกัน Error ครับ
-@Composable
-fun BookingScreen(navController: NavHostController) {
+fun BookingScreen(navController: NavHostController, viewModel: AppointmentViewModel) {
     var screenState by remember { mutableStateOf(0) }
     when (screenState) {
         0 -> {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFF2F5DAA))
-                    .padding(vertical = 20.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "จองคิวหาหมอ",
-                    color = Color.White,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Column(modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally) {
-                Row{
-                    Button(onClick = { screenState = 1 },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(55.dp),
-                        shape = RoundedCornerShape(50),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF4A8C8E)
-                        )
-                    )
-                    {
-                        Text("จองคิวให้ตัวเอง",
-                            color = Color.White,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold)
-                    }
+            Column(modifier = Modifier.fillMaxSize()) {
+                Box(modifier = Modifier.fillMaxWidth().background(Color(0xFF2F5DAA)).padding(vertical = 20.dp), Alignment.Center) {
+                    Text(text = "เลือกประเภทการจอง", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row{
-                    Button(onClick = { screenState = 2 },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(55.dp),
-                        shape = RoundedCornerShape(50),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF4A8C8E)
-                        )
-                    )
-                    {
-                        Text("จองคิวให้ผู้อื่น",
-                            color = Color.White,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold)
+                Column(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+                    Button(onClick = { screenState = 1 }, modifier = Modifier.fillMaxWidth().height(55.dp), shape = RoundedCornerShape(50), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4A8C8E))) {
+                        Text("จองคิวให้ตัวเอง", fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(onClick = { screenState = 2 }, modifier = Modifier.fillMaxWidth().height(55.dp), shape = RoundedCornerShape(50), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4A8C8E))) {
+                        Text("จองคิวให้ผู้อื่น", fontWeight = FontWeight.Bold)
                     }
                 }
             }
         }
-        1 -> SelfBooking(navController)
-        2 -> OtherBooking(navController)
+        1 -> SelfBooking(navController, viewModel)
+        2 -> OtherBooking(navController, viewModel)
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun OtherBooking(navController: NavHostController) {
-
-    val userId = UserSession.iduser
-    val api = RetrofitClient.instance
-    val repository = AppointmentRepository(api)
-    val factory = AppointmentViewModelFactory(repository)
-    val viewModel: AppointmentViewModel = viewModel(factory = factory)
-
-    var selectedType by remember { mutableStateOf("") }
-
-    var selectedTimeIndex by remember { mutableStateOf("") }
+fun SelfBooking(navController: NavHostController, viewModel: AppointmentViewModel) {
+    var selectedDate by rememberSaveable { mutableStateOf("") }
     var symptom by remember { mutableStateOf("") }
+    var selectedTimeSlot by remember { mutableStateOf("09:00 - 12:00") }
 
-    val timeSlots = listOf(
-        "09:00 - 12:00",
-        "13:00 - 16:00"
-    )
-    val type = listOf(
-        "Online","Walk-in"
-    )
+    val context = LocalContext.current
+    val calendar = Calendar.getInstance()
+    val datePickerDialog = DatePickerDialog(context, { _, y, m, d ->
+        selectedDate = String.format("%04d-%02d-%02d", y, m + 1, d)
+    }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH))
 
-    LaunchedEffect(Unit) {
-        viewModel.loadFamilyMembers(userId)
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF2F2F2))
-    ) {
-
-        // 🔵 Header
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFF2F5DAA))
-                .padding(vertical = 20.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "จองคิวให้ผู้อื่น",
-                color = Color.White,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
-            )
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF2F2F2))) {
+        Box(modifier = Modifier.fillMaxWidth().background(Color(0xFF2F5DAA)).padding(vertical = 20.dp), Alignment.Center) {
+            Text("จองคิวให้ตัวเอง", color = Color.White, fontWeight = FontWeight.Bold)
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),) {
-
-            // 📅 เลือกวันที่
-            val context = LocalContext.current
-            val calendar = Calendar.getInstance()
-
-            var selectedDate by rememberSaveable { mutableStateOf("") }
-
-            val year = calendar.get(Calendar.YEAR)
-            val month = calendar.get(Calendar.MONTH)
-            val day = calendar.get(Calendar.DAY_OF_MONTH)
-
-            val datePickerDialog = DatePickerDialog(
-                context,
-                { _, selectedYear, selectedMonth, selectedDay ->
-                    val formattedDate = String.format(
-                        "%04d-%02d-%02d",
-                        selectedYear,
-                        selectedMonth + 1,
-                        selectedDay
-                    )
-                    selectedDate = formattedDate
-                },
-                year, month, day
-            )
-
-            val members = viewModel.familyMembers
-            var expanded by remember { mutableStateOf(false) }
-            var selectedMember by remember { mutableStateOf<FamilyMemberDetail?>(null) }
-
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = !expanded }
-            ) {
-
-                OutlinedTextField(
-                    value = selectedMember?.firstName + " " + (selectedMember?.lastName ?: ""),
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("เลือกสมาชิกครอบครัว") },
-                    trailingIcon = {
-                        ExposedDropdownMenuDefaults.TrailingIcon(expanded)
-                    },
-                    modifier = Modifier
-                        .menuAnchor()
-                        .fillMaxWidth()
-                )
-
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-
-                    members.forEach { member ->
-
-                        DropdownMenuItem(
-                            text = {
-                                Text("${member.firstName} ${member.lastName}")
-                            },
-                            onClick = {
-                                selectedMember = member
-                                expanded = false
-                            }
-                        )
-
-                    }
-
-                }
+        Column(modifier = Modifier.padding(16.dp)) {
+            OutlinedTextField(value = selectedDate, onValueChange = {}, label = { Text("วันที่จอง") }, readOnly = true, modifier = Modifier.fillMaxWidth(), trailingIcon = { IconButton(onClick = { datePickerDialog.show() }) { Icon(Icons.Default.DateRange, null) } })
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("เลือกช่วงเวลา", fontWeight = FontWeight.Bold)
+            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+                TimeSlotButton("09:00 - 12:00\n(เช้า)", selectedTimeSlot == "09:00 - 12:00") { selectedTimeSlot = "09:00 - 12:00" }
+                TimeSlotButton("13:00 - 16:00\n(บ่าย)", selectedTimeSlot == "13:00 - 16:00") { selectedTimeSlot = "13:00 - 16:00" }
             }
-
-
-            Text(
-                text = "วันที่จอง",
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedTextField(
-                value = selectedDate,
-                onValueChange = {},
-                placeholder = { Text("เลือกวันที่") },
-                readOnly = true,
-                modifier = Modifier
-                    .fillMaxWidth(),
-                shape = RoundedCornerShape(5.dp),
-                trailingIcon = {
-                    IconButton(onClick = { datePickerDialog.show() }) {
-                        Icon(Icons.Default.DateRange, contentDescription = "Pick Date")
-                    }
-                }
-            )
-
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedTextField(value = symptom, onValueChange = { symptom = it }, label = { Text("อาการเบื้องต้น") }, modifier = Modifier.fillMaxWidth().height(120.dp))
             Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "เลือกรูปแบบการจอง",
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                type.forEach { it ->
-
-                    val isSelected = it == selectedType
-
-                    OutlinedButton(
-                        onClick = { selectedType = it },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(55.dp),
-                        shape = RoundedCornerShape(5.dp),
-                        border = BorderStroke(
-                            1.dp,
-                            if (isSelected) Color(0xFF2F5DAA)
-                            else Color.Gray
-                        ),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = if (isSelected)
-                                Color(0xFFE3EDFF)
-                            else Color.Transparent
-                        )
-                    ) {
-                        Text(
-                            text = it,
-                            color = Color.Black,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-
-            // ⏰ เลือกช่วงเวลา
-            Text(
-                text = "เลือกช่วงเวลา",
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                timeSlots.forEach { it ->
-
-                    val isSelected = it == selectedTimeIndex
-
-                    OutlinedButton(
-                        onClick = { selectedTimeIndex = it },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(55.dp),
-                        shape = RoundedCornerShape(5.dp),
-                        border = BorderStroke(
-                            1.dp,
-                            if (isSelected) Color(0xFF2F5DAA)
-                            else Color.Gray
-                        ),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = if (isSelected)
-                                Color(0xFFE3EDFF)
-                            else Color.Transparent
-                        )
-                    ) {
-                        Text(
-                            text = it,
-                            color = Color.Black,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // 🩺 อาการเบื้องต้น
-            Text(
-                text = "อาการเบื้องต้น",
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedTextField(
-                value = symptom,
-                onValueChange = { symptom = it },
-                placeholder = { Text("รายละเอียดอาการ...") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp),
-                shape = RoundedCornerShape(5.dp)
-            )
-
-            Spacer(modifier = Modifier.height(100.dp))
-
-            // 🔘 ปุ่มยืนยัน
-            Button(
-                onClick = {
-                    if (selectedDate.isNotEmpty() && selectedType.isNotEmpty() && selectedTimeIndex.isNotEmpty() && symptom.isNotEmpty()){
-                        val appointment = Appointment(
-                            idAppointment = null,
-                            patient_iduser = selectedMember?.iduser ?: 0,
-                            booking_by_user_id = iduser,
-                            Appointment_date = selectedDate,
-                            time_slot = selectedTimeIndex,
-                            initial_symptom = symptom,
-                            queue_number = null,
-                            check_in_time = null,
-                            status = "Pending",
-                            booking_type = selectedType
-                        )
-                        viewModel.createAppointment(appointment)
-                        navController.popBackStack()
-                    }else{
-
-                    }
-                },
-
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(55.dp),
-                shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF4A8C8E)
-                )
-            ) {
-                Text(
-                    text = "ยืนยันการจองคิว",
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
+            Button(onClick = {
+                if(selectedDate.isEmpty()) { Toast.makeText(context, "กรุณาเลือกวันที่", Toast.LENGTH_SHORT).show(); return@Button }
+                val appointment = Appointment(null, iduser, iduser, selectedDate, selectedTimeSlot, symptom, null, null, "Pending", "Walk-in")
+                viewModel.createAppointment(appointment)
+                navController.popBackStack()
+            }, modifier = Modifier.fillMaxWidth().height(55.dp), shape = RoundedCornerShape(50), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4A8C8E))) {
+                Text("ยืนยันการจอง", color = Color.White)
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SelfBooking(navController: NavHostController) {
-    val api = RetrofitClient.instance
-    val repository = AppointmentRepository(api)
-    val factory = AppointmentViewModelFactory(repository)
-    val viewModel: AppointmentViewModel = viewModel(factory = factory)
+fun TimeSlotButton(label: String, isSelected: Boolean, onClick: () -> Unit) {
+    val borderColor = if (isSelected) Color(0xFF2F5DAA) else Color.Gray
+    val bgColor = if (isSelected) Color(0xFFE3F2FD) else Color.Transparent
+    Box(modifier = Modifier.width(160.dp).border(1.5.dp, borderColor, RoundedCornerShape(50)).clip(RoundedCornerShape(50)).background(bgColor).clickable { onClick() }.padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
+        Text(text = label, textAlign = TextAlign.Center, color = if(isSelected) Color(0xFF2F5DAA) else Color.Gray, fontWeight = if(isSelected) FontWeight.Bold else FontWeight.Normal)
+    }
+}
 
-    var selectedType by remember { mutableStateOf("") }
-
-    var selectedTimeIndex by remember { mutableStateOf("") }
+@Composable
+fun OtherBooking(navController: NavHostController, viewModel: AppointmentViewModel) {
+    var selectedDate by rememberSaveable { mutableStateOf("") }
     var symptom by remember { mutableStateOf("") }
+    var selectedTimeSlot by remember { mutableStateOf("09:00 - 12:00") }
+    var selectedMember by remember { mutableStateOf<FamilyMemberDetail?>(null) }
+    var expanded by remember { mutableStateOf(false) }
 
-    val timeSlots = listOf(
-        "09:00 - 12:00",
-        "13:00 - 16:00"
-    )
-    val type = listOf(
-        "Online","Walk-in"
-    )
+    val context = LocalContext.current
+    val calendar = Calendar.getInstance()
+    val datePickerDialog = DatePickerDialog(context, { _, y, m, d ->
+        selectedDate = String.format("%04d-%02d-%02d", y, m + 1, d)
+    }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH))
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF2F2F2))
-    ) {
+    LaunchedEffect(Unit) { viewModel.loadFamilyMembers(iduser) }
 
-        // 🔵 Header
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFF2F5DAA))
-                .padding(vertical = 20.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "จองคิวให้ตัวเอง",
-                color = Color.White,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
-            )
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF2F2F2))) {
+        Box(modifier = Modifier.fillMaxWidth().background(Color(0xFF2F5DAA)).padding(vertical = 20.dp), Alignment.Center) {
+            Text("จองคิวให้ผู้อื่น", color = Color.White, fontWeight = FontWeight.Bold)
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),) {
-
-            // 📅 เลือกวันที่
-            val context = LocalContext.current
-            val calendar = Calendar.getInstance()
-
-            var selectedDate by rememberSaveable { mutableStateOf("") }
-
-            val year = calendar.get(Calendar.YEAR)
-            val month = calendar.get(Calendar.MONTH)
-            val day = calendar.get(Calendar.DAY_OF_MONTH)
-
-            val datePickerDialog = DatePickerDialog(
-                context,
-                { _, selectedYear, selectedMonth, selectedDay ->
-                    val formattedDate = String.format(
-                        "%04d-%02d-%02d",
-                        selectedYear,
-                        selectedMonth + 1,
-                        selectedDay
-                    )
-                    selectedDate = formattedDate
-                },
-                year, month, day
-            )
-
-            Text(
-                text = "วันที่จอง",
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedTextField(
-                value = selectedDate,
-                onValueChange = {},
-                placeholder = { Text("เลือกวันที่") },
-                readOnly = true,
-                modifier = Modifier
-                    .fillMaxWidth(),
-                shape = RoundedCornerShape(5.dp),
-                trailingIcon = {
-                    IconButton(onClick = { datePickerDialog.show() }) {
-                        Icon(Icons.Default.DateRange, contentDescription = "Pick Date")
-                    }
-                }
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "เลือกรูปแบบการจอง",
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                type.forEach { it ->
-
-                    val isSelected = it == selectedType
-
-                    OutlinedButton(
-                        onClick = { selectedType = it },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(55.dp),
-                        shape = RoundedCornerShape(5.dp),
-                        border = BorderStroke(
-                            1.dp,
-                            if (isSelected) Color(0xFF2F5DAA)
-                            else Color.Gray
-                        ),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = if (isSelected)
-                                Color(0xFFE3EDFF)
-                            else Color.Transparent
-                        )
-                    ) {
-                        Text(
-                            text = it,
-                            color = Color.Black,
-                            textAlign = TextAlign.Center
-                        )
+        Column(modifier = Modifier.padding(16.dp)) {
+            Box {
+                OutlinedTextField(value = if(selectedMember != null) "${selectedMember?.firstName} ${selectedMember?.lastName}" else "เลือกสมาชิก", onValueChange = {}, readOnly = true, modifier = Modifier.fillMaxWidth(), trailingIcon = { IconButton(onClick = { expanded = true }) { Icon(Icons.Default.ArrowDropDown, null) } })
+                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    viewModel.familyMembers.forEach { member ->
+                        DropdownMenuItem(text = { Text("${member.firstName} ${member.lastName}") }, onClick = { selectedMember = member; expanded = false })
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // ⏰ เลือกช่วงเวลา
-            Text(
-                text = "เลือกช่วงเวลา",
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                timeSlots.forEach { it ->
-
-                    val isSelected = it == selectedTimeIndex
-
-                    OutlinedButton(
-                        onClick = { selectedTimeIndex = it },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(55.dp),
-                        shape = RoundedCornerShape(5.dp),
-                        border = BorderStroke(
-                            1.dp,
-                            if (isSelected) Color(0xFF2F5DAA)
-                            else Color.Gray
-                        ),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = if (isSelected)
-                                Color(0xFFE3EDFF)
-                            else Color.Transparent
-                        )
-                    ) {
-                        Text(
-                            text = it,
-                            color = Color.Black,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedTextField(value = selectedDate, onValueChange = {}, label = { Text("วันที่จอง") }, readOnly = true, modifier = Modifier.fillMaxWidth(), trailingIcon = { IconButton(onClick = { datePickerDialog.show() }) { Icon(Icons.Default.DateRange, null) } })
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("เลือกช่วงเวลา", fontWeight = FontWeight.Bold)
+            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+                TimeSlotButton("09:00 - 12:00\n(เช้า)", selectedTimeSlot == "09:00 - 12:00") { selectedTimeSlot = "09:00 - 12:00" }
+                TimeSlotButton("13:00 - 16:00\n(บ่าย)", selectedTimeSlot == "13:00 - 16:00") { selectedTimeSlot = "13:00 - 16:00" }
             }
-
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedTextField(value = symptom, onValueChange = { symptom = it }, label = { Text("อาการเบื้องต้น") }, modifier = Modifier.fillMaxWidth().height(120.dp))
             Spacer(modifier = Modifier.height(24.dp))
-
-            // 🩺 อาการเบื้องต้น
-            Text(
-                text = "อาการเบื้องต้น",
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedTextField(
-                value = symptom,
-                onValueChange = { symptom = it },
-                placeholder = { Text("รายละเอียดอาการ...") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp),
-                shape = RoundedCornerShape(5.dp)
-            )
-
-            Spacer(modifier = Modifier.height(100.dp))
-
-            // 🔘 ปุ่มยืนยัน
-            Button(
-                onClick = {
-                    if (selectedDate.isNotEmpty() && selectedType.isNotEmpty() && selectedTimeIndex.isNotEmpty() && symptom.isNotEmpty()){
-                        val appointment = Appointment(
-                            idAppointment = null,
-                            patient_iduser = iduser,
-                            booking_by_user_id = iduser,
-                            Appointment_date = selectedDate,
-                            time_slot = selectedTimeIndex,
-                            initial_symptom = symptom,
-                            queue_number = null,
-                            check_in_time = null,
-                            status = "Pending",
-                            booking_type = selectedType
-                        )
-                        viewModel.createAppointment(appointment)
-                        navController.popBackStack()
-                    }else{
-
-                    }
-                },
-
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(55.dp),
-                shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF4A8C8E)
-                )
-            ) {
-                Text(
-                    text = "ยืนยันการจองคิว",
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
+            Button(onClick = {
+                if(selectedMember == null || selectedDate.isEmpty()) { Toast.makeText(context, "กรุณากรอกข้อมูลให้ครบ", Toast.LENGTH_SHORT).show(); return@Button }
+                val appointment = Appointment(null, selectedMember!!.iduser, iduser, selectedDate, selectedTimeSlot, symptom, null, null, "Pending", "Walk-in")
+                viewModel.createAppointment(appointment)
+                navController.popBackStack()
+            }, modifier = Modifier.fillMaxWidth().height(55.dp), shape = RoundedCornerShape(50), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4A8C8E))) {
+                Text("ยืนยันการจอง", color = Color.White)
             }
         }
     }
 }
 
+@Composable
+fun AppointmentCard(text: String) {
+    Card(modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(12.dp)), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = Color.White), border = BorderStroke(0.5.dp, Color.LightGray)) {
+        Box(modifier = Modifier.padding(16.dp)) {
+            Text(text = text, fontSize = 15.sp, color = Color.Black)
+        }
+    }
+}
+
+@Composable
+fun BottomBar(navController: NavHostController) {
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route ?: ""
+    NavigationBar(containerColor = Color.White, tonalElevation = 8.dp) {
+        if (UserSession.role == "Doctor") {
+            NavigationBarItem(icon = { Icon(Icons.Default.Dashboard, null) }, label = { Text("ห้องตรวจ") }, selected = currentRoute == "doctor_home", onClick = { navController.navigate("doctor_home") })
+            NavigationBarItem(icon = { Icon(Icons.Default.Person, null) }, label = { Text("โปรไฟล์") }, selected = currentRoute == "profile", onClick = { navController.navigate("profile") })
+        } else if (UserSession.role == "Nurse") {
+            NavigationBarItem(icon = { Icon(Icons.Default.Payments, null) }, label = { Text("การเงิน") }, selected = currentRoute == "nurse_home", onClick = { navController.navigate("nurse_home") })
+            NavigationBarItem(icon = { Icon(Icons.Default.Person, null) }, label = { Text("โปรไฟล์") }, selected = currentRoute == "profile", onClick = { navController.navigate("profile") })
+        } else {
+            val homeRoute = "home/${UserSession.firstName}/${UserSession.lastName}"
+            NavigationBarItem(icon = { Icon(Icons.Default.Home, null) }, label = { Text("หน้าแรก") }, selected = currentRoute.startsWith("home"), onClick = { navController.navigate(homeRoute) })
+            NavigationBarItem(icon = { Icon(Icons.Default.DateRange, null) }, label = { Text("จองคิว") }, selected = currentRoute == "booking", onClick = { navController.navigate("booking") })
+            NavigationBarItem(icon = { Icon(Icons.Default.List, null) }, label = { Text("ประวัติ") }, selected = currentRoute == "history", onClick = { navController.navigate("history") })
+            NavigationBarItem(icon = { Icon(Icons.Default.Person, null) }, label = { Text("โปรไฟล์") }, selected = currentRoute == "profile", onClick = { navController.navigate("profile") })
+        }
+    }
+}

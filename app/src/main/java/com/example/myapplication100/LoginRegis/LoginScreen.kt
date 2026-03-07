@@ -83,7 +83,7 @@ fun RegisterStep1Screen(navController: NavHostController) {
         Surface(modifier = Modifier.fillMaxSize(), color = Color.White, shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp)) {
             Column(modifier = Modifier.padding(horizontal = 30.dp).verticalScroll(rememberScrollState())) {
                 Spacer(Modifier.height(35.dp))
-                Text("ข้อมูลบัญชี", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MainBlue)
+                Text("ข้อมูลบัญชี"  , fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MainBlue)
                 Spacer(Modifier.height(15.dp))
 
                 // ช่องเลขบัตรประชาชน
@@ -225,6 +225,8 @@ fun RegisterStep2Screen(navController: NavHostController) {
     }
 }
 
+// ... (ส่วนบนคงเดิม) ...
+
 @Composable
 fun LoginScreen(navController: NavHostController) {
     var username by remember { mutableStateOf("") }
@@ -245,9 +247,8 @@ fun LoginScreen(navController: NavHostController) {
                 LoginTextField(password, { password = it }, "รหัสผ่าน", isPassword = true)
                 if(errorText.isNotEmpty()) Text(errorText, color = Color.Red, fontSize = 12.sp)
 
-
                 Spacer(Modifier.height(60.dp))
-// แก้ไขส่วน Button ใน LoginScreen
+
                 Button(
                     onClick = {
                         scope.launch {
@@ -259,15 +260,21 @@ fun LoginScreen(navController: NavHostController) {
                                 if (response.isSuccessful && response.body()?.success == true) {
                                     val user = response.body()?.user
 
-                                    // --- เพิ่มการเก็บข้อมูลลง Session ตรงนี้ ---
+                                    // 1. บันทึกข้อมูลลง Session รวมถึง Role ที่ได้จาก Database
                                     UserSession.iduser = user?.iduser ?: 0
                                     UserSession.firstName = user?.firstname ?: ""
                                     UserSession.lastName = user?.lastname ?: ""
                                     UserSession.citizenId = user?.citizen_id ?: ""
-                                    // ---------------------------------------
+                                    UserSession.role = user?.role ?: "Patient" // เก็บ Role
 
-                                    // นำทางไปหน้า Home พร้อมส่งชื่อนามสกุล
-                                    navController.navigate("home/${UserSession.firstName}/${UserSession.lastName}") {
+                                    // 2. แยกหน้าตาม Role
+                                    val destination = when (UserSession.role) {
+                                        "Doctor" -> "doctor_home"
+                                        "Nurse" -> "nurse_home"
+                                        else -> "home/${UserSession.firstName}/${UserSession.lastName}"
+                                    }
+
+                                    navController.navigate(destination) {
                                         popUpTo("login") { inclusive = true }
                                     }
                                 } else {

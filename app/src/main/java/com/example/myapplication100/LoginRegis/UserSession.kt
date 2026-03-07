@@ -5,6 +5,8 @@ object UserSession {
     var firstName: String = ""
     var lastName: String = ""
     var citizenId: String = ""
+
+    var role: String = ""
     // เพิ่มฟิลด์อื่นๆ ที่ต้องการโชว์ เช่น
     // var birthdate: String = ""
 }

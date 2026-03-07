@@ -1,55 +1,31 @@
 package com.example.myapplication100.DataClass
 
-import androidx.compose.runtime.remember
 import com.example.myapplication100.DataClass.Appointment_Examination.*
+import com.example.myapplication100.DataClass.Family.FamilyMemberDetail
+import com.example.myapplication100.DataClass.Family.FamilyResponse
 import com.example.myapplication100.DataClass.Login.*
 import com.example.myapplication100.DataClass.Medicine_Prescription.*
 import com.example.myapplication100.DataClass.User_Roles.*
+import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.*
-import com.example.myapplication100.DataClass.Login.*
-import com.example.myapplication100.DataClass.Appointment_Examination.CurrentMedicine
-import com.example.myapplication100.DataClass.Family.FamilyMemberDetail
-import com.example.myapplication100.DataClass.Family.FamilyResponse
-
 
 interface HospitalApiService {
 
-    // --- ส่วนของ Register & Login ---
-
-    // เปลี่ยนชื่อให้ตรงกับหน้า UI (RegisterStep2Screen)
-
-    // เปลี่ยนชื่อและ Request Class ให้ตรงกับหน้า UI (LoginScreen)
-
+    // --- 1. LOGIN & REGISTER ---
     @POST("register/patient")
     suspend fun registerUser(@Body request: RegisterRequest): Response<RegisterResponse>
 
     @POST("login")
     suspend fun loginUser(@Body request: LoginRequest): Response<LoginResponse>
 
+    @GET("family/all-groups")
+    suspend fun getAllFamilies(): Response<List<FamilyResponse>>
+
     @GET("users")
     suspend fun getAllUsers(): Response<List<UserResponse>>
-    // --- ส่วนของ Patient App (หน้าแรก & ประวัติ) ---
 
-    @GET("patient/{id}/appointments")
-    suspend fun getMyAppointments(@Path("id") userId: Int): Response<List<Appointment>>
-
-    @GET("medical-history/{id}")  // แก้ตรงนี้
-    suspend fun getMedicalHistory(@Path("id") userId: Int): Response<List<Examination>>
-
-    // HospitalApiService.kt
-    @GET("current-medicine/{id}")
-    suspend fun getCurrentMedicine(@Path("id") userId: Int): Response<List<CurrentMedicine>>
-
-    @GET("patient-info/{id}")
-    suspend fun getPatientInfo(@Path("id") userId: Int): Response<PatientInfo>
-
-
-    // --- ส่วนของ Assistant & Doctor App ---
-
-    @GET("appointments/today")
-    suspend fun getTodayQueue(): Response<List<Appointment>>
-
+    // --- 2. APPOINTMENTS ---
     @GET("appointments")
     suspend fun getAllAppointments(): Response<List<Appointment>>
 
@@ -58,17 +34,47 @@ interface HospitalApiService {
         @Path("patient_iduser") patient_iduser: Int
     ): Response<List<Appointment>>
 
-    // self booking
     @POST("appointments")
-    suspend fun createAppointment(
-        @Body appointment: Appointment
-    ): Response<AppointmentResponse>
+    suspend fun createAppointment(@Body appointment: Appointment): Response<AppointmentResponse>
 
-    //other booking
-    @POST("appointments/book-for-family")
-    suspend fun createAppointmentFamily(
-        @Body request: AppointmentFamilyRequest
-    ): Response<AppointmentFamilyResponse>
+    // --- 3. DOCTOR WORKFLOW ---
+
+    // 🟢 รวมร่างเป็นอันเดียว: ส่งทั้งผลตรวจและ ID ยาไปที่ Node.js
+    @FormUrlEncoded
+    @POST("examination/update-result")
+    suspend fun updateExamination(
+        @Field("idAppointment") id: Int,      // ชื่อ Field ต้องตรงกับ req.body ใน Node.js สัส
+        @Field("diagnosis") diagnosis: String,
+        @Field("treatment") treatment: String,
+        @Field("note") note: String,
+        @Field("medicines_json") medicinesJson: String, // 👈 เปลี่ยนชื่อ field ให้สื่อถึง JSON
+        @Field("next_appointment") nextAppoint: String?
+    ): Response<Unit>
+
+    @POST("prescription/add")
+    suspend fun addPrescriptions(
+        @Query("idAppointment") id: Int,
+        @Body list: List<Prescription>
+    ): Response<Unit>
+
+    @FormUrlEncoded
+    @POST("appointments/update-status")
+    suspend fun updateStatus(
+        @Field("idAppointment") id: Int,
+        @Field("status") status: String
+    ): Response<Unit>
+
+    // 🟢 ดึงรายชื่อยามาโชว์ใน Dropdown
+    @GET("medicines")
+    suspend fun getMedicines(): Response<List<Medicine>>
+
+    // --- 4. NURSE & BILLING ---
+    @FormUrlEncoded
+    @POST("examination/update-cost")
+    suspend fun updateCost(
+        @Field("idAppointment") id: Int,
+        @Field("total_cost") cost: Double
+    ): Response<Unit>
 
     @PUT("examination/vitals/{id}")
     suspend fun updateVitals(
@@ -76,16 +82,23 @@ interface HospitalApiService {
         @Body vitals: VitalsRequest
     ): Response<Unit>
 
-    @POST("examination/diagnose")
-    suspend fun saveTreatment(@Body treatment: Examination): Response<Unit>
+    // --- 5. PATIENT HISTORY ---
+    @GET("medical-history/{id}")
+    suspend fun getMedicalHistory(@Path("id") userId: Int): Response<List<Examination>>
 
-    @GET("family/all-groups")
-    suspend fun getAllFamilies(): Response<List<FamilyResponse>>
+    @GET("current-medicine/{id}")
+    suspend fun getCurrentMedicine(@Path("id") userId: Int): Response<List<CurrentMedicine>>
+
+    @GET("profile/{id}")
+    suspend fun getPatientProfile(@Path("id") userId: Int): Response<UserResponse>
+
+    // --- 6. FAMILY MANAGEMENT ---
+    @GET("family/members/{userId}")
+    suspend fun getFamilyMembersByUserId(@Path("userId") userId: Int): Response<List<FamilyMemberDetail>>
 
     @POST("family/create")
     suspend fun createFamily(@Body request: Map<String, String>): Response<Map<String, Any>>
 
-    // แก้ไข: ต้องเพิ่ม @FormUrlEncoded ถ้าจะใช้ @Field
     @FormUrlEncoded
     @POST("family/add-member")
     suspend fun addMemberToFamily(
@@ -93,19 +106,12 @@ interface HospitalApiService {
         @Field("citizenId") citizenId: String
     ): Response<Unit>
 
-    @DELETE("family/remove-member/{iduser}")
-    suspend fun removeMemberFromFamily(
-        @Path("iduser") iduser: Int
-    ): Response<Unit>
+    @DELETE("family/member/{userId}")
+    suspend fun removeMemberFromFamily(@Path("userId") userId: Int): Response<ResponseBody>
 
-    @DELETE("family/delete/{idFamily}")
-    suspend fun deleteWholeFamilyById(
-        @Path("idFamily") idFamily: Int
-    ): Response<Unit>
+    @DELETE("family/{idFamily}")
+    suspend fun deleteWholeFamilyById(@Path("idFamily") idFamily: Int): Response<ResponseBody>
 
-    // ฟังก์ชันเดิมอื่นๆ...
-    @GET("family/members/{userId}")
-    suspend fun getFamilyMembersByUserId(@Path("userId") userId: Int
-    ): Response<List<FamilyMemberDetail>>
-
+    @GET("appointments/current-status")
+    suspend fun getCurrentQueueStatus(): retrofit2.Response<QueueResponse>
 }

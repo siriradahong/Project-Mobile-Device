@@ -93,4 +93,7 @@ dependencies {
     implementation(libs.androidx.runtime)
 
     implementation("androidx.compose.material:material-icons-extended:1.6.0")
+    implementation(libs.androidx.foundation)
+    implementation(libs.androidx.compose.remote.creation.core)
+    implementation(libs.androidx.compose.ui.text)
 }
