@@ -296,26 +296,138 @@ fun SelfBooking(navController: NavHostController, viewModel: AppointmentViewMode
     }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH))
 
     Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF2F2F2))) {
-        Box(modifier = Modifier.fillMaxWidth().background(Color(0xFF2F5DAA)).padding(vertical = 20.dp), Alignment.Center) {
+        Box(
+            modifier = Modifier.fillMaxWidth().background(Color(0xFF2F5DAA)).padding(vertical = 20.dp), Alignment.Center
+        ) {
             Text("จองคิวให้ตัวเอง", color = Color.White, fontWeight = FontWeight.Bold)
         }
+
         Column(modifier = Modifier.padding(16.dp)) {
-            OutlinedTextField(value = selectedDate, onValueChange = {}, label = { Text("วันที่จอง") }, readOnly = true, modifier = Modifier.fillMaxWidth(), trailingIcon = { IconButton(onClick = { datePickerDialog.show() }) { Icon(Icons.Default.DateRange, null) } })
+
+            Text("วันที่จอง", fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = selectedDate,
+                onValueChange = {},
+                placeholder = { Text("เลือกวันที่") },
+                readOnly = true,
+                modifier = Modifier.fillMaxWidth(),
+                trailingIcon = { IconButton(onClick = { datePickerDialog.show() }) { Icon(Icons.Default.DateRange, null) } }
+            )
+
             Spacer(modifier = Modifier.height(16.dp))
-            Text("เลือกช่วงเวลา", fontWeight = FontWeight.Bold)
-            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                TimeSlotButton("09:00 - 12:00\n(เช้า)", selectedTimeSlot == "09:00 - 12:00") { selectedTimeSlot = "09:00 - 12:00" }
-                TimeSlotButton("13:00 - 16:00\n(บ่าย)", selectedTimeSlot == "13:00 - 16:00") { selectedTimeSlot = "13:00 - 16:00" }
+
+            var selectedType by remember { mutableStateOf("") }
+            val type = listOf("Walk-in", "Online")
+
+            Text("เลือกรูปแบบการจอง", fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                type.forEach { it ->
+
+                    val isSelected = it == selectedType
+
+                    OutlinedButton(
+                        onClick = { selectedType = it },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(55.dp),
+                        shape = RoundedCornerShape(5.dp),
+                        border = BorderStroke(
+                            1.dp,
+                            if (isSelected) Color(0xFF2F5DAA)
+                            else Color.Gray
+                        ),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (isSelected)
+                                Color(0xFFE3EDFF)
+                            else Color.Transparent
+                        )
+                    ) {
+                        Text(
+                            text = it,
+                            color = Color.Black,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
             }
-            Spacer(modifier = Modifier.height(16.dp))
-            OutlinedTextField(value = symptom, onValueChange = { symptom = it }, label = { Text("อาการเบื้องต้น") }, modifier = Modifier.fillMaxWidth().height(120.dp))
+
             Spacer(modifier = Modifier.height(24.dp))
+
+            var selectedTime by remember { mutableStateOf("") }
+            val time = listOf("09:00 - 12:00", "13:00 - 16:00")
+
+            Text("เลือกช่วงเวลา", fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                time.forEach { it ->
+
+                    val isSelected = it == selectedTime
+
+                    OutlinedButton(
+                        onClick = { selectedTime = it },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(55.dp),
+                        shape = RoundedCornerShape(5.dp),
+                        border = BorderStroke(
+                            1.dp,
+                            if (isSelected) Color(0xFF2F5DAA)
+                            else Color.Gray
+                        ),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (isSelected)
+                                Color(0xFFE3EDFF)
+                            else Color.Transparent
+                        )
+                    ) {
+                        Text(
+                            text = it,
+                            color = Color.Black,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text("อาการเบื้องต้น", fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = symptom,
+                onValueChange = { symptom = it },
+                placeholder = { Text("เช่น ปวดหัว อาเจียน") },
+                modifier = Modifier.fillMaxWidth().height(120.dp)
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
             Button(onClick = {
-                if(selectedDate.isEmpty()) { Toast.makeText(context, "กรุณาเลือกวันที่", Toast.LENGTH_SHORT).show(); return@Button }
-                val appointment = Appointment(null, iduser, iduser, selectedDate, selectedTimeSlot, symptom, null, null, "Pending", "Walk-in")
+                if(selectedDate.isEmpty()) {
+                    Toast.makeText(context, "กรุณาเลือกวันที่", Toast.LENGTH_SHORT).show(); return@Button }
+                val appointment = Appointment(
+                    null,
+                    iduser,
+                    iduser,
+                    selectedDate,
+                    selectedTimeSlot,
+                    symptom,
+                    null,
+                    null,
+                    "Pending",
+                    selectedType)
                 viewModel.createAppointment(appointment)
                 navController.popBackStack()
-            }, modifier = Modifier.fillMaxWidth().height(55.dp), shape = RoundedCornerShape(50), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4A8C8E))) {
+            }, modifier = Modifier.fillMaxWidth().height(55.dp), shape = RoundedCornerShape(50), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4A8C8E))
+            ) {
                 Text("ยืนยันการจอง", color = Color.White)
             }
         }
@@ -326,7 +438,17 @@ fun SelfBooking(navController: NavHostController, viewModel: AppointmentViewMode
 fun TimeSlotButton(label: String, isSelected: Boolean, onClick: () -> Unit) {
     val borderColor = if (isSelected) Color(0xFF2F5DAA) else Color.Gray
     val bgColor = if (isSelected) Color(0xFFE3F2FD) else Color.Transparent
-    Box(modifier = Modifier.width(160.dp).border(1.5.dp, borderColor, RoundedCornerShape(50)).clip(RoundedCornerShape(50)).background(bgColor).clickable { onClick() }.padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
+    Box(
+        modifier = Modifier
+            .width(160.dp)
+            .border(1.5.dp, borderColor, RoundedCornerShape(50))
+            .clip(RoundedCornerShape(50))
+            .background(bgColor)
+            .clickable { onClick() }
+            .padding(vertical = 12.dp),
+
+        contentAlignment = Alignment.Center
+    ) {
         Text(text = label, textAlign = TextAlign.Center, color = if(isSelected) Color(0xFF2F5DAA) else Color.Gray, fontWeight = if(isSelected) FontWeight.Bold else FontWeight.Normal)
     }
 }
@@ -352,31 +474,165 @@ fun OtherBooking(navController: NavHostController, viewModel: AppointmentViewMod
             Text("จองคิวให้ผู้อื่น", color = Color.White, fontWeight = FontWeight.Bold)
         }
         Column(modifier = Modifier.padding(16.dp)) {
+
+            Text("ผุ้ป่วยที่จะรักษา", fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+
             Box {
-                OutlinedTextField(value = if(selectedMember != null) "${selectedMember?.firstName} ${selectedMember?.lastName}" else "เลือกสมาชิก", onValueChange = {}, readOnly = true, modifier = Modifier.fillMaxWidth(), trailingIcon = { IconButton(onClick = { expanded = true }) { Icon(Icons.Default.ArrowDropDown, null) } })
-                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                OutlinedTextField(
+                    value = if(selectedMember != null) "${selectedMember?.firstName} ${selectedMember?.lastName}" else "เลือกสมาชิก",
+                    onValueChange = {},
+                    readOnly = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = { IconButton(onClick = { expanded = true }) { Icon(Icons.Default.ArrowDropDown, null) }
+                    }
+                )
+
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
                     viewModel.familyMembers.forEach { member ->
-                        DropdownMenuItem(text = { Text("${member.firstName} ${member.lastName}") }, onClick = { selectedMember = member; expanded = false })
+                        DropdownMenuItem(
+                            text = { Text("${member.firstName} ${member.lastName}") },
+                            onClick = { selectedMember = member; expanded = false }
+                        )
                     }
                 }
             }
+
             Spacer(modifier = Modifier.height(16.dp))
-            OutlinedTextField(value = selectedDate, onValueChange = {}, label = { Text("วันที่จอง") }, readOnly = true, modifier = Modifier.fillMaxWidth(), trailingIcon = { IconButton(onClick = { datePickerDialog.show() }) { Icon(Icons.Default.DateRange, null) } })
+
+            Text("วันที่จอง", fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = selectedDate,
+                onValueChange = {},
+                placeholder = { Text("เลือกวันที่") },
+                readOnly = true,
+                modifier = Modifier.fillMaxWidth(),
+                trailingIcon = { IconButton(onClick = { datePickerDialog.show() }) { Icon(Icons.Default.DateRange, null) }
+                }
+            )
+
             Spacer(modifier = Modifier.height(16.dp))
-            Text("เลือกช่วงเวลา", fontWeight = FontWeight.Bold)
-            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                TimeSlotButton("09:00 - 12:00\n(เช้า)", selectedTimeSlot == "09:00 - 12:00") { selectedTimeSlot = "09:00 - 12:00" }
-                TimeSlotButton("13:00 - 16:00\n(บ่าย)", selectedTimeSlot == "13:00 - 16:00") { selectedTimeSlot = "13:00 - 16:00" }
+
+            var selectedType by remember { mutableStateOf("") }
+            val type = listOf("Walk-in", "Online")
+
+            Text("เลือกรูปแบบการจอง", fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                type.forEach { it ->
+
+                    val isSelected = it == selectedType
+
+                    OutlinedButton(
+                        onClick = { selectedType = it },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(55.dp),
+                        shape = RoundedCornerShape(5.dp),
+                        border = BorderStroke(
+                            1.dp,
+                            if (isSelected) Color(0xFF2F5DAA)
+                            else Color.Gray
+                        ),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (isSelected)
+                                Color(0xFFE3EDFF)
+                            else Color.Transparent
+                        )
+                    ) {
+                        Text(
+                            text = it,
+                            color = Color.Black,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
             }
+
             Spacer(modifier = Modifier.height(16.dp))
-            OutlinedTextField(value = symptom, onValueChange = { symptom = it }, label = { Text("อาการเบื้องต้น") }, modifier = Modifier.fillMaxWidth().height(120.dp))
+
+            var selectedTime by remember { mutableStateOf("") }
+            val time = listOf("09:00 - 12:00", "13:00 - 16:00")
+
+            Text("เลือกช่วงเวลา", fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                time.forEach { it ->
+
+                    val isSelected = it == selectedTime
+
+                    OutlinedButton(
+                        onClick = { selectedTime = it },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(55.dp),
+                        shape = RoundedCornerShape(5.dp),
+                        border = BorderStroke(
+                            1.dp,
+                            if (isSelected) Color(0xFF2F5DAA)
+                            else Color.Gray
+                        ),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (isSelected)
+                                Color(0xFFE3EDFF)
+                            else Color.Transparent
+                        )
+                    ) {
+                        Text(
+                            text = it,
+                            color = Color.Black,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text("อาการเบื้องต้น", fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = symptom,
+                onValueChange = { symptom = it },
+                placeholder = { Text("เช่น ปวดหัว อาเจียน") },
+                modifier = Modifier.fillMaxWidth().height(120.dp)
+            )
+
             Spacer(modifier = Modifier.height(24.dp))
-            Button(onClick = {
-                if(selectedMember == null || selectedDate.isEmpty()) { Toast.makeText(context, "กรุณากรอกข้อมูลให้ครบ", Toast.LENGTH_SHORT).show(); return@Button }
-                val appointment = Appointment(null, selectedMember!!.iduser, iduser, selectedDate, selectedTimeSlot, symptom, null, null, "Pending", "Walk-in")
+
+            Button(
+                onClick = {
+                if(selectedMember == null || selectedDate.isEmpty()) {
+                    Toast.makeText(context, "กรุณากรอกข้อมูลให้ครบ", Toast.LENGTH_SHORT).show(); return@Button
+                }
+                val appointment = Appointment(
+                    null,
+                    selectedMember!!.iduser,
+                    iduser,
+                    selectedDate,
+                    selectedTimeSlot,
+                    symptom,
+                    null,
+                    null,
+                    "Pending",
+                    selectedType)
                 viewModel.createAppointment(appointment)
                 navController.popBackStack()
-            }, modifier = Modifier.fillMaxWidth().height(55.dp), shape = RoundedCornerShape(50), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4A8C8E))) {
+            },
+                modifier = Modifier.fillMaxWidth().height(55.dp),
+                shape = RoundedCornerShape(50),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4A8C8E)))
+            {
                 Text("ยืนยันการจอง", color = Color.White)
             }
         }

@@ -26,5 +26,7 @@ data class Appointment(
     val height: Double? = null,
     val temperature: Double? = null,
     val blood_pressure: String? = null,
-    val heart_rate: Int? = null
+    val heart_rate: Int? = null,
+
+
 )
