@@ -9,6 +9,10 @@ import com.example.myapplication100.DataClass.User_Roles.*
 import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.*
+import retrofit2.http.Body
+import retrofit2.http.GET
+import retrofit2.http.POST
+
 
 interface HospitalApiService {
 
@@ -114,4 +118,29 @@ interface HospitalApiService {
 
     @GET("appointments/current-status")
     suspend fun getCurrentQueueStatus(): retrofit2.Response<QueueResponse>
+
+
+
+
+
+
+
+
+        @GET("appointments/today")
+        suspend fun getTodayQueue(): List<Appointmentnurse>
+
+        @GET("appointments/summary")
+        suspend fun getQueueSummary(): QueueSummary
+
+        @POST("vitals")
+        suspend fun saveVitals(
+            @Body vitals: VitalsRequestnurse
+        ): Response<Unit>
+
+
+
+
+
+
+
 }
