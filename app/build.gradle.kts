@@ -96,4 +96,5 @@ dependencies {
     implementation(libs.androidx.foundation)
     implementation(libs.androidx.compose.remote.creation.core)
     implementation(libs.androidx.compose.ui.text)
+    testImplementation(kotlin("test"))
 }

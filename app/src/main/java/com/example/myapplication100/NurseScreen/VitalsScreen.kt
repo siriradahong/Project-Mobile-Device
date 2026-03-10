@@ -246,13 +246,7 @@ fun VitalsScreen(modifier: Modifier = Modifier,
                             popUpTo("queue") { inclusive = true }
                         }
                     }
-                    viewModel.saveVitals(context, vitals) {
 
-                        nav?.navigate("queue") {
-                            popUpTo("queue") { inclusive = true }
-                        }
-
-                    }
 
                 },
                 modifier = Modifier.fillMaxWidth(),

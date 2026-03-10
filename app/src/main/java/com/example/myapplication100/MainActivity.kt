@@ -63,7 +63,8 @@ fun App() {
                     currentRoute == "profile" ||
                     currentRoute == "booking" ||
                     currentRoute == "doctor_home" ||
-                    currentRoute == "nurse_home"
+                    currentRoute == "nurse_home"||
+                    currentRoute == "queue"
 
             if (showBottomBar) { BottomBar(nav) }
         }
@@ -84,6 +85,34 @@ fun App() {
                 DoctorTreatmentScreen(nav, id, viewModel)
             }
             composable("nurse_home") { NurseHomeScreen(nav, viewModel) }
+
+            composable("queue") {
+
+                QueueControlScreen(
+                    nav = nav
+                )
+            }
+
+            composable(
+                route = "vitals/{appointmentId}/{queue}/{name}"
+            ) { backStackEntry ->
+
+                val appointmentId =
+                    backStackEntry.arguments?.getString("appointmentId")?.toIntOrNull() ?: 0
+
+                val queueNumber =
+                    backStackEntry.arguments?.getString("queue") ?: ""
+
+                val patientName =
+                    backStackEntry.arguments?.getString("name") ?: ""
+
+                VitalsScreen(
+                    nav = nav,
+                    appointmentId = appointmentId,
+                    queueNumber = queueNumber,
+                    patientName = patientName
+                )
+            }
         }
     }
 }
@@ -657,6 +686,12 @@ fun BottomBar(navController: NavHostController) {
             NavigationBarItem(icon = { Icon(Icons.Default.Dashboard, null) }, label = { Text("ห้องตรวจ") }, selected = currentRoute == "doctor_home", onClick = { navController.navigate("doctor_home") })
             NavigationBarItem(icon = { Icon(Icons.Default.Person, null) }, label = { Text("โปรไฟล์") }, selected = currentRoute == "profile", onClick = { navController.navigate("profile") })
         } else if (UserSession.role == "Nurse") {
+            NavigationBarItem(
+                icon = { Icon(Icons.Default.List, null) },
+                label = { Text("จัดการคิว") },
+                selected = currentRoute == "queue",
+                onClick = { navController.navigate("queue") }
+            )
             NavigationBarItem(icon = { Icon(Icons.Default.Payments, null) }, label = { Text("การเงิน") }, selected = currentRoute == "nurse_home", onClick = { navController.navigate("nurse_home") })
             NavigationBarItem(icon = { Icon(Icons.Default.Person, null) }, label = { Text("โปรไฟล์") }, selected = currentRoute == "profile", onClick = { navController.navigate("profile") })
         } else {

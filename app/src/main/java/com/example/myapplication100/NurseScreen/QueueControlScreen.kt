@@ -150,46 +150,6 @@ fun QueueControlScreen(modifier: Modifier = Modifier,
                 )
             }
 
-
-            // TODO: ดึงจำนวนคิวแต่ละสถานะจากฐานข้อมูล
-            // GET /appointments/summary
-
-            // ================= WALK IN BUTTON =================
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(100.dp)
-                    .clickable {
-
-                        // TODO: เพิ่มคิว Walk-in
-                        // POST /appointment (booking_type = WALK_IN)
-
-                    },
-                shape = RoundedCornerShape(24.dp),
-                elevation = CardDefaults.cardElevation(8.dp)
-            ) {
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .background(Color(0xFF3F7F8B)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            Icons.Default.Add,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(32.dp)
-                        )
-                        Text(
-                            "ลงทะเบียนแบบ Walk in",
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
-
             Text(
                 "นัดหมายทั้งหมด (${queueList.size})",
                 fontWeight = FontWeight.Bold,
@@ -204,7 +164,7 @@ fun QueueControlScreen(modifier: Modifier = Modifier,
                         appointmentId = item.idAppointment,
                         queueNumber = item.queue_number ?: "-",
                         name = "${item.firstname} ${item.lastname}",
-                        time = "กำลังรอ",
+                        time = "",
                         isScreened = item.idexamination != null,
                         nav = nav
                     )
