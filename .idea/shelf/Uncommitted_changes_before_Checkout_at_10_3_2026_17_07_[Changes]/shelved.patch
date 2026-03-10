@@ -1,0 +1,16 @@
+Index: app/src/main/java/com/example/myapplication100/VitalsRequest.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.example.myapplication100\r\n\r\ndata class VitalsRequest(\r\n\r\n    val appointment_id: Int,\r\n\r\n    val blood_pressure_sys: Int,\r\n    val blood_pressure_dia: Int,\r\n    val heart_rate: Int,\r\n    val weight: Double,\r\n    val height: Double,\r\n    val temperature: Double,\r\n    val note: String\r\n\r\n)\r\n
+===================================================================
+diff --git a/app/src/main/java/com/example/myapplication100/VitalsRequest.kt b/app/src/main/java/com/example/myapplication100/VitalsRequest.kt
+--- a/app/src/main/java/com/example/myapplication100/VitalsRequest.kt	(revision 6a4f0146f01d74b7be1cc359c26e017e09f870e9)
++++ b/app/src/main/java/com/example/myapplication100/VitalsRequest.kt	(date 1773132189588)
+@@ -3,7 +3,6 @@
+ data class VitalsRequest(
+ 
+     val appointment_id: Int,
+-
+     val blood_pressure_sys: Int,
+     val blood_pressure_dia: Int,
+     val heart_rate: Int,

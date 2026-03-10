@@ -1,0 +1,659 @@
+Index: app/src/main/java/com/example/myapplication100/MainActivity.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.example.myapplication100\r\n\r\nimport android.app.DatePickerDialog\r\nimport android.os.Bundle\r\nimport android.widget.Toast\r\nimport androidx.activity.ComponentActivity\r\nimport androidx.activity.compose.setContent\r\nimport androidx.compose.foundation.*\r\nimport androidx.compose.foundation.layout.*\r\nimport androidx.compose.foundation.lazy.LazyColumn\r\nimport androidx.compose.foundation.lazy.items\r\nimport androidx.compose.foundation.shape.CircleShape\r\nimport androidx.compose.foundation.shape.RoundedCornerShape\r\nimport androidx.compose.material.icons.Icons\r\nimport androidx.compose.material.icons.filled.*\r\nimport androidx.compose.material3.*\r\nimport androidx.compose.runtime.*\r\nimport androidx.compose.runtime.saveable.rememberSaveable\r\nimport androidx.compose.ui.Alignment\r\nimport androidx.compose.ui.Modifier\r\nimport androidx.compose.ui.draw.clip\r\nimport androidx.compose.ui.draw.shadow\r\nimport androidx.compose.ui.graphics.Color\r\nimport androidx.compose.ui.platform.LocalContext\r\nimport androidx.compose.ui.text.font.FontWeight\r\nimport androidx.compose.ui.text.style.TextAlign\r\nimport androidx.compose.ui.unit.dp\r\nimport androidx.compose.ui.unit.sp\r\nimport androidx.lifecycle.viewmodel.compose.viewModel\r\nimport androidx.navigation.NavHostController\r\nimport androidx.navigation.compose.*\r\nimport com.example.myapplication100.DataClass.Appointment_Examination.*\r\nimport com.example.myapplication100.DataClass.Family.FamilyMemberDetail\r\nimport com.example.myapplication100.LoginRegis.*\r\nimport com.example.myapplication100.LoginRegis.UserSession.iduser\r\nimport com.example.myapplication100.DoctorScreen.*\r\nimport com.example.myapplication100.NurseScreen.*\r\nimport kotlinx.coroutines.delay\r\nimport java.util.Calendar\r\n\r\nclass MainActivity : ComponentActivity() {\r\n    override fun onCreate(savedInstanceState: Bundle?) {\r\n        super.onCreate(savedInstanceState)\r\n        setContent { App() }\r\n    }\r\n}\r\n\r\n@Composable\r\nfun App() {\r\n    val nav = rememberNavController()\r\n    val navBackStackEntry by nav.currentBackStackEntryAsState()\r\n    val currentRoute = navBackStackEntry?.destination?.route ?: \"\"\r\n\r\n    val api = RetrofitClient.instance\r\n    val repository = AppointmentRepository(api)\r\n    val factory = AppointmentViewModelFactory(repository)\r\n    val viewModel: AppointmentViewModel = viewModel(factory = factory)\r\n\r\n    Scaffold(\r\n        bottomBar = {\r\n            val showBottomBar = currentRoute.startsWith(\"home\") ||\r\n                    currentRoute == \"history\" ||\r\n                    currentRoute == \"profile\" ||\r\n                    currentRoute == \"booking\" ||\r\n                    currentRoute == \"doctor_home\" ||\r\n                    currentRoute == \"nurse_home\"\r\n\r\n            if (showBottomBar) { BottomBar(nav) }\r\n        }\r\n    ) { pad ->\r\n        NavHost(nav, startDestination = \"login\", Modifier.padding(pad)) {\r\n            composable(\"login\") { LoginScreen(nav) }\r\n            composable(\"register1\") { RegisterStep1Screen(nav) }\r\n            composable(\"register2\") { RegisterStep2Screen(nav) }\r\n\r\n            composable(\"home/{fname}/{lname}\") { HomeScreen(nav, viewModel) }\r\n            composable(\"booking\") { BookingScreen(nav, viewModel) }\r\n            composable(\"history\") { HistoryScreen(UserSession.iduser) }\r\n            composable(\"profile\") { ProfileScreen() }\r\n\r\n            composable(\"doctor_home\") { DoctorHomeScreen(nav, viewModel) }\r\n            composable(\"doctor_treatment/{appointmentId}\") { entry ->\r\n                val id = entry.arguments?.getString(\"appointmentId\")?.toIntOrNull() ?: 0\r\n                DoctorTreatmentScreen(nav, id, viewModel)\r\n            }\r\n            composable(\"nurse_home\") { NurseHomeScreen(nav, viewModel) }\r\n        }\r\n    }\r\n}\r\n@Composable\r\nfun HomeScreen(nav: NavHostController, viewModel: AppointmentViewModel) {\r\n    // 1. ดึงข้อมูล State ทั้งหมด\r\n    val allAppointments by viewModel.allAppointments.collectAsState()\r\n    val myAppointments by viewModel.appointments.collectAsState()\r\n\r\n    // 2. หาคิวปัจจุบันของคลินิก (Live)\r\n    val currentClinicPatient = allAppointments.firstOrNull { it.status == \"In-room\" }\r\n        ?: allAppointments.firstOrNull { it.status == \"Screening\" }\r\n\r\n    // 3. หาคิว \"ของฉัน\" ที่กำลังจะมาถึง (กรองเอาเฉพาะคนที่มีสถานะยังไม่เสร็จ)\r\n    val myNextQueue = myAppointments.firstOrNull { it.status != \"Success\" && it.status != \"Cancelled\" }\r\n\r\n    LaunchedEffect(Unit) {\r\n        while (true) {\r\n            viewModel.loadAllAppointments() // ดึงรวม\r\n            viewModel.loadAppointments(UserSession.iduser) // ดึงส่วนตัว (สำคัญ!)\r\n            delay(5000)\r\n        }\r\n    }\r\n\r\n    Column(modifier = Modifier.fillMaxSize().background(Color(0xFF21539D))) {\r\n        // --- Header ---\r\n        Box(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.Center) {\r\n            Text(text = \"หน้าแรก\", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)\r\n        }\r\n\r\n        Surface(\r\n            modifier = Modifier.fillMaxSize(),\r\n            color = Color.White,\r\n            shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)\r\n        ) {\r\n            LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp)) {\r\n                item {\r\n                    Text(\"คิวของคุณ\", fontWeight = FontWeight.Bold, color = Color(0xFF21539D), fontSize = 18.sp)\r\n                    Spacer(modifier = Modifier.height(8.dp))\r\n\r\n                    if (myNextQueue != null) {\r\n                        Card(\r\n                            modifier = Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(20.dp)),\r\n                            colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD)), // สีฟ้าอ่อน\r\n                            border = BorderStroke(2.dp, Color(0xFF21539D)),\r\n                            shape = RoundedCornerShape(20.dp)\r\n                        ) {\r\n                            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(20.dp)) {\r\n                                Text(text = myNextQueue.queue_number ?: \"รอคิว\", fontSize = 70.sp, fontWeight = FontWeight.Black, color = Color(0xFF21539D))\r\n                                Text(\"สถานะของคุณ: ${myNextQueue.status}\", fontWeight = FontWeight.Bold, color = Color(0xFF1976D2))\r\n                                Text(\"เวลานัด: ${myNextQueue.time_slot}\", fontSize = 14.sp, color = Color.Gray)\r\n                            }\r\n                        }\r\n                    } else {\r\n                        Card(\r\n                            modifier = Modifier.fillMaxWidth(),\r\n                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),\r\n                            shape = RoundedCornerShape(20.dp)\r\n                        ) {\r\n                            Text(\"คุณยังไม่มีนัดหมายในวันนี้\", modifier = Modifier.padding(20.dp), color = Color.Gray, textAlign = TextAlign.Center)\r\n                        }\r\n                    }\r\n                    Spacer(modifier = Modifier.height(24.dp))\r\n                }\r\n\r\n                // --- [HIGHLIGHT] คิวของคุณ ---\r\n// --- [LIVE] คิวปัจจุบันของคลินิก (ดีไซน์ใหม่ตามรูป) ---\r\n                item {\r\n                    Text(\"กำลังเรียกตรวจ (Live)\", fontWeight = FontWeight.Bold, color = Color.Gray, fontSize = 14.sp)\r\n                    Spacer(modifier = Modifier.height(8.dp))\r\n\r\n                    if (currentClinicPatient != null) {\r\n                        Card(\r\n                            modifier = Modifier\r\n                                .fillMaxWidth()\r\n                                .shadow(10.dp, RoundedCornerShape(20.dp)),\r\n                            colors = CardDefaults.cardColors(containerColor = Color.White),\r\n                            shape = RoundedCornerShape(20.dp)\r\n                        ) {\r\n                            Column(horizontalAlignment = Alignment.CenterHorizontally) {\r\n                                // Header สีส้ม พร้อม Status\r\n                                Box(\r\n                                    modifier = Modifier\r\n                                        .fillMaxWidth()\r\n                                        .background(Color(0xFFFFB74D)) // สีส้มอ่อนตามรูป\r\n                                        .padding(vertical = 8.dp),\r\n                                    contentAlignment = Alignment.Center\r\n                                ) {\r\n                                    Row(verticalAlignment = Alignment.CenterVertically) {\r\n                                        Text(\r\n                                            text = \"กำลังตรวจคิว\",\r\n                                            color = Color.White,\r\n                                            fontWeight = FontWeight.Bold,\r\n                                            fontSize = 18.sp\r\n                                        )\r\n                                        Spacer(modifier = Modifier.width(8.dp))\r\n                                        // เพิ่ม Status Badge เข้าไปในแถบสีส้ม\r\n                                        BadgeStatus(currentClinicPatient.status ?: \"\")\r\n                                    }\r\n                                }\r\n\r\n                                // เลขคิวขนาดใหญ่\r\n                                Text(\r\n                                    text = currentClinicPatient.queue_number ?: \"-\",\r\n                                    fontSize = 100.sp, // ขนาดใหญ่พิเศษตามรูป\r\n                                    fontWeight = FontWeight.Black,\r\n                                    color = Color.Black,\r\n                                    modifier = Modifier.padding(vertical = 10.dp)\r\n                                )\r\n\r\n                                // คำนวณคิวที่เหลือ (ถ้าเรามีคิวในระบบ)\r\n                                if (myNextQueue != null) {\r\n                                    // หา index ของเราและคิวปัจจุบันในรายการทั้งหมดเพื่อหาผลต่าง\r\n                                    val allPending = allAppointments.filter { it.status != \"Success\" && it.status != \"Cancelled\" }\r\n                                    val currentIdx = allPending.indexOfFirst { it.queue_number == currentClinicPatient.queue_number }\r\n                                    val myIdx = allPending.indexOfFirst { it.queue_number == myNextQueue.queue_number }\r\n\r\n                                    val remainingQueues = if (myIdx > currentIdx) myIdx - currentIdx else 0\r\n\r\n                                    if (remainingQueues > 0) {\r\n                                        Row(modifier = Modifier.padding(bottom = 20.dp)) {\r\n                                            Text(\"เหลือก่อนถึงคิวคุณ \", color = Color.Gray, fontSize = 16.sp)\r\n                                            Text(\"$remainingQueues คิว\", color = Color.Red, fontSize = 16.sp, fontWeight = FontWeight.Bold)\r\n                                        }\r\n                                    } else if (myNextQueue.queue_number == currentClinicPatient.queue_number) {\r\n                                        Text(\"ถึงคิวของคุณแล้ว!\", color = Color(0xFF4CAF50), fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 20.dp))\r\n                                    }\r\n                                } else {\r\n                                    Text(\"กรุณาจองคิวเพื่อรับบริการ\", color = Color.Gray, modifier = Modifier.padding(bottom = 20.dp))\r\n                                }\r\n                            }\r\n                        }\r\n                    } else {\r\n                        NoPatientCard()\r\n                    }\r\n                    Spacer(modifier = Modifier.height(24.dp))\r\n                }\r\n\r\n                // --- [ACTION] ปุ่มจองคิว ---\r\n                item {\r\n                    Button(\r\n                        onClick = { nav.navigate(\"booking\") },\r\n                        modifier = Modifier.fillMaxWidth().height(60.dp),\r\n                        shape = RoundedCornerShape(15.dp),\r\n                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3F7F8B))\r\n                    ) {\r\n                        Icon(Icons.Default.Add, null)\r\n                        Spacer(modifier = Modifier.width(8.dp))\r\n                        Text(\"จองคิวใหม่\", fontSize = 18.sp, fontWeight = FontWeight.Bold)\r\n                    }\r\n                    Spacer(modifier = Modifier.height(24.dp))\r\n                }\r\n\r\n                // --- [LIST] คิวรอตรวจทั้งหมด ---\r\n                item {\r\n                    Text(\"คิวรอตรวจทั้งหมด\", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Gray)\r\n                    Spacer(modifier = Modifier.height(10.dp))\r\n                }\r\n\r\n                val pendingQueues = allAppointments.filter { it.status == \"Pending\" || it.status == \"Screening\" }\r\n                if (pendingQueues.isEmpty()) {\r\n                    item { Text(\"ไม่มีคิวรอตรวจ\", color = Color.LightGray) }\r\n                } else {\r\n                    items(pendingQueues.take(5)) { patient ->\r\n                        NextQueueCard(patient.queue_number ?: \"-\", \"หมายเลขคิวรอรับบริการ\")\r\n                        Spacer(modifier = Modifier.height(8.dp))\r\n                    }\r\n                }\r\n\r\n                item { Spacer(modifier = Modifier.height(100.dp)) }\r\n            }\r\n        }\r\n    }\r\n}\r\n@Composable\r\nfun BookingScreen(navController: NavHostController, viewModel: AppointmentViewModel) {\r\n    var screenState by remember { mutableStateOf(0) }\r\n    when (screenState) {\r\n        0 -> {\r\n            Column(modifier = Modifier.fillMaxSize()) {\r\n                Box(modifier = Modifier.fillMaxWidth().background(Color(0xFF2F5DAA)).padding(vertical = 20.dp), Alignment.Center) {\r\n                    Text(text = \"เลือกประเภทการจอง\", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)\r\n                }\r\n                Column(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {\r\n                    Button(onClick = { screenState = 1 }, modifier = Modifier.fillMaxWidth().height(55.dp), shape = RoundedCornerShape(50), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4A8C8E))) {\r\n                        Text(\"จองคิวให้ตัวเอง\", fontWeight = FontWeight.Bold)\r\n                    }\r\n                    Spacer(modifier = Modifier.height(16.dp))\r\n                    Button(onClick = { screenState = 2 }, modifier = Modifier.fillMaxWidth().height(55.dp), shape = RoundedCornerShape(50), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4A8C8E))) {\r\n                        Text(\"จองคิวให้ผู้อื่น\", fontWeight = FontWeight.Bold)\r\n                    }\r\n                }\r\n            }\r\n        }\r\n        1 -> SelfBooking(navController, viewModel)\r\n        2 -> OtherBooking(navController, viewModel)\r\n    }\r\n}\r\n\r\n@Composable\r\nfun SelfBooking(navController: NavHostController, viewModel: AppointmentViewModel) {\r\n    var selectedDate by rememberSaveable { mutableStateOf(\"\") }\r\n    var symptom by remember { mutableStateOf(\"\") }\r\n    var selectedTimeSlot by remember { mutableStateOf(\"09:00 - 12:00\") }\r\n\r\n    val context = LocalContext.current\r\n    val calendar = Calendar.getInstance()\r\n    val datePickerDialog = DatePickerDialog(context, { _, y, m, d ->\r\n        selectedDate = String.format(\"%04d-%02d-%02d\", y, m + 1, d)\r\n    }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH))\r\n\r\n    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF2F2F2))) {\r\n        Box(\r\n            modifier = Modifier.fillMaxWidth().background(Color(0xFF2F5DAA)).padding(vertical = 20.dp), Alignment.Center\r\n        ) {\r\n            Text(\"จองคิวให้ตัวเอง\", color = Color.White, fontWeight = FontWeight.Bold)\r\n        }\r\n\r\n        Column(modifier = Modifier.padding(16.dp)) {\r\n\r\n            Text(\"วันที่จอง\", fontWeight = FontWeight.Bold)\r\n            Spacer(modifier = Modifier.height(8.dp))\r\n\r\n            OutlinedTextField(\r\n                value = selectedDate,\r\n                onValueChange = {},\r\n                placeholder = { Text(\"เลือกวันที่\") },\r\n                readOnly = true,\r\n                modifier = Modifier.fillMaxWidth(),\r\n                trailingIcon = { IconButton(onClick = { datePickerDialog.show() }) { Icon(Icons.Default.DateRange, null) } }\r\n            )\r\n\r\n            Spacer(modifier = Modifier.height(16.dp))\r\n\r\n            var selectedType by remember { mutableStateOf(\"\") }\r\n            val type = listOf(\"Walk-in\", \"Online\")\r\n\r\n            Text(\"เลือกรูปแบบการจอง\", fontWeight = FontWeight.Bold)\r\n            Spacer(modifier = Modifier.height(8.dp))\r\n\r\n            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)\r\n            ) {\r\n                type.forEach { it ->\r\n\r\n                    val isSelected = it == selectedType\r\n\r\n                    OutlinedButton(\r\n                        onClick = { selectedType = it },\r\n                        modifier = Modifier\r\n                            .weight(1f)\r\n                            .height(55.dp),\r\n                        shape = RoundedCornerShape(5.dp),\r\n                        border = BorderStroke(\r\n                            1.dp,\r\n                            if (isSelected) Color(0xFF2F5DAA)\r\n                            else Color.Gray\r\n                        ),\r\n                        colors = ButtonDefaults.outlinedButtonColors(\r\n                            containerColor = if (isSelected)\r\n                                Color(0xFFE3EDFF)\r\n                            else Color.Transparent\r\n                        )\r\n                    ) {\r\n                        Text(\r\n                            text = it,\r\n                            color = Color.Black,\r\n                            textAlign = TextAlign.Center\r\n                        )\r\n                    }\r\n                }\r\n            }\r\n\r\n            Spacer(modifier = Modifier.height(24.dp))\r\n\r\n            var selectedTime by remember { mutableStateOf(\"\") }\r\n            val time = listOf(\"09:00 - 12:00\", \"13:00 - 16:00\")\r\n\r\n            Text(\"เลือกช่วงเวลา\", fontWeight = FontWeight.Bold)\r\n            Spacer(modifier = Modifier.height(8.dp))\r\n\r\n            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)\r\n            ) {\r\n                time.forEach { it ->\r\n\r\n                    val isSelected = it == selectedTime\r\n\r\n                    OutlinedButton(\r\n                        onClick = { selectedTime = it },\r\n                        modifier = Modifier\r\n                            .weight(1f)\r\n                            .height(55.dp),\r\n                        shape = RoundedCornerShape(5.dp),\r\n                        border = BorderStroke(\r\n                            1.dp,\r\n                            if (isSelected) Color(0xFF2F5DAA)\r\n                            else Color.Gray\r\n                        ),\r\n                        colors = ButtonDefaults.outlinedButtonColors(\r\n                            containerColor = if (isSelected)\r\n                                Color(0xFFE3EDFF)\r\n                            else Color.Transparent\r\n                        )\r\n                    ) {\r\n                        Text(\r\n                            text = it,\r\n                            color = Color.Black,\r\n                            textAlign = TextAlign.Center\r\n                        )\r\n                    }\r\n                }\r\n            }\r\n\r\n            Spacer(modifier = Modifier.height(16.dp))\r\n\r\n            Text(\"อาการเบื้องต้น\", fontWeight = FontWeight.Bold)\r\n            Spacer(modifier = Modifier.height(8.dp))\r\n\r\n            OutlinedTextField(\r\n                value = symptom,\r\n                onValueChange = { symptom = it },\r\n                placeholder = { Text(\"เช่น ปวดหัว อาเจียน\") },\r\n                modifier = Modifier.fillMaxWidth().height(120.dp)\r\n            )\r\n\r\n            Spacer(modifier = Modifier.height(24.dp))\r\n\r\n            Button(onClick = {\r\n                if(selectedDate.isEmpty()) {\r\n                    Toast.makeText(context, \"กรุณาเลือกวันที่\", Toast.LENGTH_SHORT).show(); return@Button }\r\n                val appointment = Appointment(\r\n                    null,\r\n                    iduser,\r\n                    iduser,\r\n                    selectedDate,\r\n                    selectedTimeSlot,\r\n                    symptom,\r\n                    null,\r\n                    null,\r\n                    \"Pending\",\r\n                    selectedType)\r\n                viewModel.createAppointment(appointment)\r\n                navController.popBackStack()\r\n            }, modifier = Modifier.fillMaxWidth().height(55.dp), shape = RoundedCornerShape(50), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4A8C8E))\r\n            ) {\r\n                Text(\"ยืนยันการจอง\", color = Color.White)\r\n            }\r\n        }\r\n    }\r\n}\r\n\r\n@Composable\r\nfun TimeSlotButton(label: String, isSelected: Boolean, onClick: () -> Unit) {\r\n    val borderColor = if (isSelected) Color(0xFF2F5DAA) else Color.Gray\r\n    val bgColor = if (isSelected) Color(0xFFE3F2FD) else Color.Transparent\r\n    Box(\r\n        modifier = Modifier\r\n            .width(160.dp)\r\n            .border(1.5.dp, borderColor, RoundedCornerShape(50))\r\n            .clip(RoundedCornerShape(50))\r\n            .background(bgColor)\r\n            .clickable { onClick() }\r\n            .padding(vertical = 12.dp),\r\n\r\n        contentAlignment = Alignment.Center\r\n    ) {\r\n        Text(text = label, textAlign = TextAlign.Center, color = if(isSelected) Color(0xFF2F5DAA) else Color.Gray, fontWeight = if(isSelected) FontWeight.Bold else FontWeight.Normal)\r\n    }\r\n}\r\n\r\n@Composable\r\nfun OtherBooking(navController: NavHostController, viewModel: AppointmentViewModel) {\r\n    var selectedDate by rememberSaveable { mutableStateOf(\"\") }\r\n    var symptom by remember { mutableStateOf(\"\") }\r\n    var selectedTimeSlot by remember { mutableStateOf(\"09:00 - 12:00\") }\r\n    var selectedMember by remember { mutableStateOf<FamilyMemberDetail?>(null) }\r\n    var expanded by remember { mutableStateOf(false) }\r\n\r\n    val context = LocalContext.current\r\n    val calendar = Calendar.getInstance()\r\n    val datePickerDialog = DatePickerDialog(context, { _, y, m, d ->\r\n        selectedDate = String.format(\"%04d-%02d-%02d\", y, m + 1, d)\r\n    }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH))\r\n\r\n    LaunchedEffect(Unit) { viewModel.loadFamilyMembers(iduser) }\r\n\r\n    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF2F2F2))) {\r\n        Box(modifier = Modifier.fillMaxWidth().background(Color(0xFF2F5DAA)).padding(vertical = 20.dp), Alignment.Center) {\r\n            Text(\"จองคิวให้ผู้อื่น\", color = Color.White, fontWeight = FontWeight.Bold)\r\n        }\r\n        Column(modifier = Modifier.padding(16.dp)) {\r\n\r\n            Text(\"ผุ้ป่วยที่จะรักษา\", fontWeight = FontWeight.Bold)\r\n            Spacer(modifier = Modifier.height(8.dp))\r\n\r\n            Box {\r\n                OutlinedTextField(\r\n                    value = if(selectedMember != null) \"${selectedMember?.firstName} ${selectedMember?.lastName}\" else \"เลือกสมาชิก\",\r\n                    onValueChange = {},\r\n                    readOnly = true,\r\n                    modifier = Modifier.fillMaxWidth(),\r\n                    trailingIcon = { IconButton(onClick = { expanded = true }) { Icon(Icons.Default.ArrowDropDown, null) }\r\n                    }\r\n                )\r\n\r\n                DropdownMenu(\r\n                    expanded = expanded,\r\n                    onDismissRequest = { expanded = false }\r\n                ) {\r\n                    viewModel.familyMembers.forEach { member ->\r\n                        DropdownMenuItem(\r\n                            text = { Text(\"${member.firstName} ${member.lastName}\") },\r\n                            onClick = { selectedMember = member; expanded = false }\r\n                        )\r\n                    }\r\n                }\r\n            }\r\n\r\n            Spacer(modifier = Modifier.height(16.dp))\r\n\r\n            Text(\"วันที่จอง\", fontWeight = FontWeight.Bold)\r\n            Spacer(modifier = Modifier.height(8.dp))\r\n\r\n            OutlinedTextField(\r\n                value = selectedDate,\r\n                onValueChange = {},\r\n                placeholder = { Text(\"เลือกวันที่\") },\r\n                readOnly = true,\r\n                modifier = Modifier.fillMaxWidth(),\r\n                trailingIcon = { IconButton(onClick = { datePickerDialog.show() }) { Icon(Icons.Default.DateRange, null) }\r\n                }\r\n            )\r\n\r\n            Spacer(modifier = Modifier.height(16.dp))\r\n\r\n            var selectedType by remember { mutableStateOf(\"\") }\r\n            val type = listOf(\"Walk-in\", \"Online\")\r\n\r\n            Text(\"เลือกรูปแบบการจอง\", fontWeight = FontWeight.Bold)\r\n            Spacer(modifier = Modifier.height(8.dp))\r\n\r\n            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)\r\n            ) {\r\n                type.forEach { it ->\r\n\r\n                    val isSelected = it == selectedType\r\n\r\n                    OutlinedButton(\r\n                        onClick = { selectedType = it },\r\n                        modifier = Modifier\r\n                            .weight(1f)\r\n                            .height(55.dp),\r\n                        shape = RoundedCornerShape(5.dp),\r\n                        border = BorderStroke(\r\n                            1.dp,\r\n                            if (isSelected) Color(0xFF2F5DAA)\r\n                            else Color.Gray\r\n                        ),\r\n                        colors = ButtonDefaults.outlinedButtonColors(\r\n                            containerColor = if (isSelected)\r\n                                Color(0xFFE3EDFF)\r\n                            else Color.Transparent\r\n                        )\r\n                    ) {\r\n                        Text(\r\n                            text = it,\r\n                            color = Color.Black,\r\n                            textAlign = TextAlign.Center\r\n                        )\r\n                    }\r\n                }\r\n            }\r\n\r\n            Spacer(modifier = Modifier.height(16.dp))\r\n\r\n            var selectedTime by remember { mutableStateOf(\"\") }\r\n            val time = listOf(\"09:00 - 12:00\", \"13:00 - 16:00\")\r\n\r\n            Text(\"เลือกช่วงเวลา\", fontWeight = FontWeight.Bold)\r\n            Spacer(modifier = Modifier.height(8.dp))\r\n\r\n            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)\r\n            ) {\r\n                time.forEach { it ->\r\n\r\n                    val isSelected = it == selectedTime\r\n\r\n                    OutlinedButton(\r\n                        onClick = { selectedTime = it },\r\n                        modifier = Modifier\r\n                            .weight(1f)\r\n                            .height(55.dp),\r\n                        shape = RoundedCornerShape(5.dp),\r\n                        border = BorderStroke(\r\n                            1.dp,\r\n                            if (isSelected) Color(0xFF2F5DAA)\r\n                            else Color.Gray\r\n                        ),\r\n                        colors = ButtonDefaults.outlinedButtonColors(\r\n                            containerColor = if (isSelected)\r\n                                Color(0xFFE3EDFF)\r\n                            else Color.Transparent\r\n                        )\r\n                    ) {\r\n                        Text(\r\n                            text = it,\r\n                            color = Color.Black,\r\n                            textAlign = TextAlign.Center\r\n                        )\r\n                    }\r\n                }\r\n            }\r\n\r\n            Spacer(modifier = Modifier.height(16.dp))\r\n\r\n            Text(\"อาการเบื้องต้น\", fontWeight = FontWeight.Bold)\r\n            Spacer(modifier = Modifier.height(8.dp))\r\n\r\n            OutlinedTextField(\r\n                value = symptom,\r\n                onValueChange = { symptom = it },\r\n                placeholder = { Text(\"เช่น ปวดหัว อาเจียน\") },\r\n                modifier = Modifier.fillMaxWidth().height(120.dp)\r\n            )\r\n\r\n            Spacer(modifier = Modifier.height(24.dp))\r\n\r\n            Button(\r\n                onClick = {\r\n                if(selectedMember == null || selectedDate.isEmpty()) {\r\n                    Toast.makeText(context, \"กรุณากรอกข้อมูลให้ครบ\", Toast.LENGTH_SHORT).show(); return@Button\r\n                }\r\n                val appointment = Appointment(\r\n                    null,\r\n                    selectedMember!!.iduser,\r\n                    iduser,\r\n                    selectedDate,\r\n                    selectedTimeSlot,\r\n                    symptom,\r\n                    null,\r\n                    null,\r\n                    \"Pending\",\r\n                    selectedType)\r\n                viewModel.createAppointment(appointment)\r\n                navController.popBackStack()\r\n            },\r\n                modifier = Modifier.fillMaxWidth().height(55.dp),\r\n                shape = RoundedCornerShape(50),\r\n                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4A8C8E)))\r\n            {\r\n                Text(\"ยืนยันการจอง\", color = Color.White)\r\n            }\r\n        }\r\n    }\r\n}\r\n\r\n@Composable\r\nfun AppointmentCard(text: String) {\r\n    Card(modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(12.dp)), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = Color.White), border = BorderStroke(0.5.dp, Color.LightGray)) {\r\n        Box(modifier = Modifier.padding(16.dp)) {\r\n            Text(text = text, fontSize = 15.sp, color = Color.Black)\r\n        }\r\n    }\r\n}\r\n\r\n@Composable\r\nfun BottomBar(navController: NavHostController) {\r\n    val navBackStackEntry by navController.currentBackStackEntryAsState()\r\n    val currentRoute = navBackStackEntry?.destination?.route ?: \"\"\r\n    NavigationBar(containerColor = Color.White, tonalElevation = 8.dp) {\r\n        if (UserSession.role == \"Doctor\") {\r\n            NavigationBarItem(icon = { Icon(Icons.Default.Dashboard, null) }, label = { Text(\"ห้องตรวจ\") }, selected = currentRoute == \"doctor_home\", onClick = { navController.navigate(\"doctor_home\") })\r\n            NavigationBarItem(icon = { Icon(Icons.Default.Person, null) }, label = { Text(\"โปรไฟล์\") }, selected = currentRoute == \"profile\", onClick = { navController.navigate(\"profile\") })\r\n        } else if (UserSession.role == \"Nurse\") {\r\n            NavigationBarItem(icon = { Icon(Icons.Default.Payments, null) }, label = { Text(\"การเงิน\") }, selected = currentRoute == \"nurse_home\", onClick = { navController.navigate(\"nurse_home\") })\r\n            NavigationBarItem(icon = { Icon(Icons.Default.Person, null) }, label = { Text(\"โปรไฟล์\") }, selected = currentRoute == \"profile\", onClick = { navController.navigate(\"profile\") })\r\n        } else {\r\n            val homeRoute = \"home/${UserSession.firstName}/${UserSession.lastName}\"\r\n            NavigationBarItem(icon = { Icon(Icons.Default.Home, null) }, label = { Text(\"หน้าแรก\") }, selected = currentRoute.startsWith(\"home\"), onClick = { navController.navigate(homeRoute) })\r\n            NavigationBarItem(icon = { Icon(Icons.Default.DateRange, null) }, label = { Text(\"จองคิว\") }, selected = currentRoute == \"booking\", onClick = { navController.navigate(\"booking\") })\r\n            NavigationBarItem(icon = { Icon(Icons.Default.List, null) }, label = { Text(\"ประวัติ\") }, selected = currentRoute == \"history\", onClick = { navController.navigate(\"history\") })\r\n            NavigationBarItem(icon = { Icon(Icons.Default.Person, null) }, label = { Text(\"โปรไฟล์\") }, selected = currentRoute == \"profile\", onClick = { navController.navigate(\"profile\") })\r\n        }\r\n    }\r\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/example/myapplication100/MainActivity.kt b/app/src/main/java/com/example/myapplication100/MainActivity.kt
+--- a/app/src/main/java/com/example/myapplication100/MainActivity.kt	(revision 42c5dffa0dedba1a29fb78ab6a494ca0be17def7)
++++ b/app/src/main/java/com/example/myapplication100/MainActivity.kt	(date 1773139033247)
+@@ -84,6 +84,28 @@
+                 DoctorTreatmentScreen(nav, id, viewModel)
+             }
+             composable("nurse_home") { NurseHomeScreen(nav, viewModel) }
++            composable("queue") { QueueControlScreen(nav, viewModel ) }
++
++            composable(route = "vitals/{appointmentId}/{queue}/{name}"
++            ) { backStackEntry ->
++
++                val appointmentId =
++                    backStackEntry.arguments?.getString("appointmentId")?.toIntOrNull() ?: 0
++
++                val queueNumber =
++                    backStackEntry.arguments?.getString("queue") ?: ""
++
++                val patientName =
++                    backStackEntry.arguments?.getString("name") ?: ""
++
++                VitalsScreen(
++                    nav =
++                    appointmentId = appointmentId,
++                    queueNumber = queueNumber,
++                    patientName = patientName
++                )
++
++            }
+         }
+     }
+ }
+Index: app/src/main/java/com/example/myapplication100/NurseScreen/VitalsScreen.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/example/myapplication100/NurseScreen/VitalsScreen.kt b/app/src/main/java/com/example/myapplication100/NurseScreen/VitalsScreen.kt
+new file mode 100644
+--- /dev/null	(date 1773139033254)
++++ b/app/src/main/java/com/example/myapplication100/NurseScreen/VitalsScreen.kt	(date 1773139033254)
+@@ -0,0 +1,267 @@
++package com.example.myapplication100.NurseScreen
++import android.util.Log
++import androidx.compose.foundation.background
++import androidx.compose.foundation.layout.Arrangement
++import androidx.compose.foundation.layout.Column
++import androidx.compose.foundation.layout.Spacer
++import androidx.compose.foundation.layout.fillMaxSize
++import androidx.compose.foundation.layout.fillMaxWidth
++import androidx.compose.foundation.layout.height
++import androidx.compose.foundation.layout.padding
++import androidx.compose.foundation.shape.RoundedCornerShape
++import androidx.compose.material3.Button
++import androidx.compose.material3.ButtonDefaults
++import androidx.compose.material3.OutlinedTextField
++import androidx.compose.material3.Scaffold
++import androidx.compose.material3.Text
++import androidx.compose.runtime.Composable
++import androidx.compose.runtime.getValue
++import androidx.compose.runtime.mutableStateOf
++import androidx.compose.runtime.remember
++import androidx.compose.runtime.setValue
++import androidx.compose.ui.Modifier
++import androidx.compose.ui.graphics.Color
++import androidx.compose.ui.unit.dp
++import androidx.compose.foundation.layout.*
++import androidx.compose.foundation.rememberScrollState
++import androidx.compose.foundation.text.KeyboardOptions
++import androidx.compose.foundation.verticalScroll
++import androidx.compose.ui.Alignment
++import androidx.compose.ui.platform.LocalContext
++import androidx.compose.ui.text.font.FontWeight
++import androidx.compose.ui.text.input.KeyboardType
++import androidx.compose.ui.text.style.TextAlign
++import androidx.compose.ui.unit.sp
++import androidx.lifecycle.viewmodel.compose.viewModel
++import androidx.navigation.NavHostController
++import com.example.myapplication100.DataClass.Appointment_Examination.VitalsRequestnurse
++import com.example.myapplication100.DataClass.Login.VitalsRequest
++
++
++//modifier: Modifier = Modifier
++@Composable
++fun VitalsScreen(modifier: Modifier = Modifier,
++                 nav: NavHostController?,
++                 appointmentId: Int,
++                 queueNumber: String,
++                 patientName: String
++
++) {
++    val viewModel: VitalsViewModel = viewModel()
++    var sys by remember { mutableStateOf("") }
++    var dia by remember { mutableStateOf("") }
++    var weight by remember { mutableStateOf("") }
++    var height by remember { mutableStateOf("") }
++    var temp by remember { mutableStateOf("") }
++    var note by remember { mutableStateOf("") }
++    var heartRate by remember { mutableStateOf("") }
++
++    val context = LocalContext.current
++
++    Column(
++        Modifier
++            .fillMaxSize()
++            .background(Color(0xFF21539D))
++    ) {
++
++        // ===== Header Section =====
++        Box(
++            Modifier
++                .fillMaxWidth()
++                .height(120.dp)
++                .statusBarsPadding()
++                .padding(top = 12.dp),
++            contentAlignment = Alignment.Center
++        ) {
++
++
++            Text(
++                "แบบฟอร์มคัดกรอง",
++                color = Color.White,
++                fontSize = 22.sp,
++                fontWeight = FontWeight.Bold
++            )
++        }
++
++        // ===== Content Container (Pattern เดียวกับ HomeScreen) =====
++        Column(
++            Modifier
++                .fillMaxSize()
++                .background(
++                    Color(0xFFF4F4F4),
++                    RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp)
++                )
++                .padding(20.dp)
++                .verticalScroll(rememberScrollState()),
++            verticalArrangement = Arrangement.spacedBy(16.dp)
++        ) {
++            Text(
++                text = "$patientName ($queueNumber)",
++                fontSize = 18.sp,
++                fontWeight = FontWeight.Bold,
++                textAlign = TextAlign.Center,
++                modifier = Modifier.fillMaxWidth()
++            )
++
++            Spacer(Modifier.height(10.dp))
++
++            // ความดันตัวบน
++            Row(
++                Modifier.fillMaxWidth(),
++                horizontalArrangement = Arrangement.spacedBy(12.dp)
++            ){
++                Column(modifier = Modifier.weight(1f)) {
++                    Text("ความดันโลหิต (ตัวบน)")
++                    Spacer(Modifier.height(8.dp))
++                    OutlinedTextField(
++                        value = sys,
++                        onValueChange = { sys = it },
++                        placeholder = { Text("กรอกความดัน") },
++                        keyboardOptions = KeyboardOptions(
++                            keyboardType = KeyboardType.Number
++                        ),
++                        modifier = Modifier.fillMaxWidth()
++                    )}
++
++                Column(modifier = Modifier.weight(1f)) {
++
++                    // ความดันตัวล่าง
++                    Text("ความดันโลหิต (ตัวล่าง)")
++                    Spacer(Modifier.height(8.dp))
++                    OutlinedTextField(
++                        value = dia,
++                        onValueChange = { dia = it },
++                        placeholder = { Text("กรอกความดัน") },
++                        keyboardOptions = KeyboardOptions(
++                            keyboardType = KeyboardType.Number
++                        ),
++                        modifier = Modifier.fillMaxWidth()
++                    )
++                }
++            }
++            Text("อัตราการเต้นของหัวใจ (bpm)")
++            OutlinedTextField(
++                value = heartRate,
++                onValueChange = { heartRate = it },
++                placeholder = { Text("กรอกอัตราการเต้นของหัวใจ") },
++                keyboardOptions = KeyboardOptions(
++                    keyboardType = KeyboardType.Number
++                ),
++                modifier = Modifier.fillMaxWidth()
++            )
++
++            // น้ำหนัก + อุณหภูมิ
++            // ===== ส่วนที่แก้ไข: น้ำหนัก + ส่วนสูง ให้แบ่งกันคนละครึ่งใน Row =====
++            Row(
++                Modifier.fillMaxWidth(),
++                horizontalArrangement = Arrangement.spacedBy(12.dp)
++            ) {
++                // ฝั่งน้ำหนัก
++                Column(modifier = Modifier.weight(1f)) {
++                    Text("น้ำหนัก (kg)")
++                    Spacer(Modifier.height(8.dp))
++                    OutlinedTextField(
++                        value = weight,
++                        onValueChange = { weight = it },
++                        placeholder = { Text("กรอกน้ำหนัก") },
++                        trailingIcon = { Text("kg") },
++                        keyboardOptions = KeyboardOptions(
++                            keyboardType = KeyboardType.Decimal
++                        ),
++                        modifier = Modifier.fillMaxWidth() // ขยายให้เต็มในสัดส่วน weight(1f)
++                    )
++                }
++
++                // ฝั่งส่วนสูง
++                Column(modifier = Modifier.weight(1f)) {
++                    Text("ส่วนสูง (cm)")
++                    Spacer(Modifier.height(8.dp))
++                    OutlinedTextField(
++                        value = height,
++                        onValueChange = { height = it },
++                        placeholder = { Text("กรอกส่วนสูง") },
++                        trailingIcon = { Text("cm") },
++                        keyboardOptions = KeyboardOptions(
++                            keyboardType = KeyboardType.Decimal
++                        ),
++                        modifier = Modifier.fillMaxWidth() // ขยายให้เต็มในสัดส่วน weight(1f)
++                    )
++                }
++            }
++
++
++
++            Row(
++                Modifier.fillMaxWidth(),
++                horizontalArrangement = Arrangement.spacedBy(12.dp)
++            ){
++                Column(modifier = Modifier.weight(1f)) {
++                    Text("อุณหภูมิ")
++                    Spacer(Modifier.height(8.dp))
++                    OutlinedTextField(
++                        value = temp,
++                        onValueChange = { temp = it },
++                        placeholder = { Text("เช่น 36.5") },
++                        trailingIcon = { Text("°C") },
++                        keyboardOptions = KeyboardOptions(
++                            keyboardType = KeyboardType.Decimal
++                        ),
++                        modifier = Modifier.fillMaxWidth()
++                    )
++                }
++            }
++
++
++
++            // โน้ตถึงหมอ
++            Text("โน้ตถึงหมอ")
++            OutlinedTextField(
++                value = note,
++                onValueChange = { note = it },
++                placeholder = { Text("เช่น คนไข้มีประวัติแพ้ยา") },
++                modifier = Modifier
++                    .fillMaxWidth()
++                    .height(100.dp)
++            )
++
++            Spacer(Modifier.height(8.dp))
++
++            Button(
++                onClick = {
++
++                    val vitals = VitalsRequestnurse(
++                        appointment_id = appointmentId,
++                        blood_pressure_sys = sys.toIntOrNull() ?: 0,
++                        blood_pressure_dia = dia.toIntOrNull() ?: 0,
++                        heart_rate = heartRate.toIntOrNull() ?: 0,
++                        weight = weight.toDoubleOrNull() ?: 0.0,
++                        height = height.toDoubleOrNull() ?: 0.0,
++                        temperature = temp.toDoubleOrNull() ?: 0.0,
++                        note = note
++                    )
++
++                    viewModel.saveVitals(context, vitals) {
++                        nav?.navigate("queue") {
++                            popUpTo("queue") { inclusive = true }
++                        }
++                    }
++                    viewModel.saveVitals(context, vitals) {
++
++                        nav?.navigate("queue") {
++                            popUpTo("queue") { inclusive = true }
++                        }
++
++                    }
++
++                },
++                modifier = Modifier.fillMaxWidth(),
++                shape = RoundedCornerShape(24.dp),
++                colors = ButtonDefaults.buttonColors(
++                    containerColor = Color(0xFF3F7F8B)
++                )
++            ) {
++                Text("ส่งข้อมูล")
++            }
++        }
++    }
++}
+Index: app/src/main/java/com/example/myapplication100/NurseScreen/QueueControlScreen.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/example/myapplication100/NurseScreen/QueueControlScreen.kt b/app/src/main/java/com/example/myapplication100/NurseScreen/QueueControlScreen.kt
+new file mode 100644
+--- /dev/null	(date 1773139033258)
++++ b/app/src/main/java/com/example/myapplication100/NurseScreen/QueueControlScreen.kt	(date 1773139033258)
+@@ -0,0 +1,332 @@
++package com.example.myapplication100.NurseScreen
++
++import com.example.myapplication100.DataClass.Appointment_Examination.Appointmentnurse
++import com.example.myapplication100.DataClass.Appointment_Examination.QueueSummary
++import com.example.myapplication100.LoginRegis.RetrofitClient
++import android.net.Uri
++import android.util.Log
++import androidx.compose.foundation.BorderStroke
++import androidx.compose.foundation.background
++import androidx.compose.foundation.clickable
++import androidx.compose.foundation.layout.Column
++import androidx.compose.foundation.layout.Row
++import androidx.compose.foundation.layout.Spacer
++import androidx.compose.foundation.layout.fillMaxSize
++import androidx.compose.foundation.layout.fillMaxWidth
++import androidx.compose.foundation.layout.height
++import androidx.compose.foundation.layout.padding
++import androidx.compose.foundation.layout.width
++import androidx.compose.foundation.lazy.LazyColumn
++import androidx.compose.foundation.lazy.items
++import androidx.compose.material3.Button
++import androidx.compose.material3.Card
++import androidx.compose.material3.MaterialTheme
++import androidx.compose.material3.Text
++import androidx.compose.runtime.Composable
++import androidx.compose.ui.Modifier
++import androidx.compose.ui.graphics.Color
++import androidx.compose.ui.unit.dp
++import androidx.compose.foundation.layout.*
++import androidx.compose.foundation.rememberScrollState
++import androidx.compose.foundation.shape.CircleShape
++import androidx.compose.foundation.shape.RoundedCornerShape
++import androidx.compose.foundation.verticalScroll
++import androidx.compose.material.icons.Icons
++import androidx.compose.material.icons.automirrored.filled.List
++import androidx.compose.material.icons.filled.Add
++import androidx.compose.material.icons.filled.Check
++import androidx.compose.material.icons.filled.List
++import androidx.compose.material.icons.filled.Person
++import androidx.compose.material3.ButtonDefaults
++import androidx.compose.material3.CardDefaults
++import androidx.compose.material3.Icon
++import androidx.compose.material3.Scaffold
++import androidx.compose.runtime.LaunchedEffect
++import androidx.compose.runtime.getValue
++import androidx.compose.runtime.mutableStateOf
++import androidx.compose.runtime.remember
++import androidx.compose.runtime.setValue
++import androidx.compose.ui.Alignment
++import androidx.compose.ui.graphics.vector.ImageVector
++import androidx.compose.ui.text.font.FontWeight
++import androidx.compose.ui.unit.sp
++import androidx.lifecycle.viewmodel.compose.viewModel
++import androidx.navigation.NavHostController
++import com.example.myapplication100.DataClass.Appointment_Examination.AppointmentViewModel
++import java.sql.DriverManager.println
++import java.util.Collections.emptyList
++
++//modifier: Modifier = Modifier
++@Composable
++fun QueueControlScreen(nav: NavHostController, viewModel: AppointmentViewModel) {
++
++    var queueList by remember { mutableStateOf<List<Appointmentnurse>>(emptyList()) }
++    var summary by remember { mutableStateOf(QueueSummary(0,0,0)) }
++    val viewModel: QueueViewModel = viewModel()
++
++    LaunchedEffect(Unit) {
++
++        try {
++
++            val q = RetrofitClient.instance.getTodayQueue()
++            println("QUEUE = $q")
++            queueList = q
++
++        } catch (e: Exception) {
++            println("QUEUE ERROR")
++            e.printStackTrace()
++        }
++
++        try {
++
++            val s = RetrofitClient.instance.getQueueSummary()
++            println("SUMMARY = $s")
++            summary = s
++
++        } catch (e: Exception) {
++            println("SUMMARY ERROR")
++            e.printStackTrace()
++        }
++
++    }
++
++
++
++    Column(
++        Modifier
++            .fillMaxSize()
++            .background(Color(0xFF21539D))
++    ) {
++
++        // ===== Header =====
++        Box(
++            Modifier
++                .fillMaxWidth()
++                .height(120.dp)
++                .statusBarsPadding(),
++            contentAlignment = Alignment.Center
++        ) {
++            Text(
++                "จัดการคิว",
++                color = Color.White,
++                fontSize = 22.sp,
++                fontWeight = FontWeight.Bold
++            )
++        }
++
++        // ===== Content Container =====
++        Column(
++            Modifier
++                .fillMaxSize()
++                .background(
++                    Color(0xFFF4F4F4),
++                    RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp)
++                )
++                .padding(20.dp),
++            verticalArrangement = Arrangement.spacedBy(20.dp)
++        ) {
++
++            // ================= SUMMARY SECTION =================
++            Row(
++                modifier = Modifier.fillMaxWidth(),
++                horizontalArrangement = Arrangement.spacedBy(12.dp)
++            ) {
++
++                SummaryCard(
++                    title = "รอเรียกคิว",
++                    value = "${summary.waiting} คน",
++                    icon = Icons.Default.List,
++                    modifier = Modifier.weight(1f)
++                )
++
++                SummaryCard(
++                    title = "รอพบแพทย์",
++                    value = "${summary.doctor} คน",
++                    icon = Icons.Default.Person,
++                    modifier = Modifier.weight(1f)
++                )
++
++                SummaryCard(
++                    title = "ตรวจเสร็จแล้ว",
++                    value = "${summary.done} คน",
++                    icon = Icons.Default.Check,
++                    modifier = Modifier.weight(1f)
++                )
++            }
++
++
++            // TODO: ดึงจำนวนคิวแต่ละสถานะจากฐานข้อมูล
++            // GET /appointments/summary
++
++            // ================= WALK IN BUTTON =================
++            Card(
++                modifier = Modifier
++                    .fillMaxWidth()
++                    .height(100.dp)
++                    .clickable {
++
++                        // TODO: เพิ่มคิว Walk-in
++                        // POST /appointment (booking_type = WALK_IN)
++
++                    },
++                shape = RoundedCornerShape(24.dp),
++                elevation = CardDefaults.cardElevation(8.dp)
++            ) {
++                Box(
++                    Modifier
++                        .fillMaxSize()
++                        .background(Color(0xFF3F7F8B)),
++                    contentAlignment = Alignment.Center
++                ) {
++                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
++                        Icon(
++                            Icons.Default.Add,
++                            contentDescription = null,
++                            tint = Color.White,
++                            modifier = Modifier.size(32.dp)
++                        )
++                        Text(
++                            "ลงทะเบียนแบบ Walk in",
++                            color = Color.White,
++                            fontWeight = FontWeight.Bold
++                        )
++                    }
++                }
++            }
++
++            Text(
++                "นัดหมายทั้งหมด (${queueList.size})",
++                fontWeight = FontWeight.Bold,
++                fontSize = 18.sp
++            )
++
++            LazyColumn {
++
++                items(queueList) { item ->
++
++                    QueueItemCard(
++                        appointmentId = item.idAppointment,
++                        queueNumber = item.queue_number ?: "-",
++                        name = "${item.firstname} ${item.lastname}",
++                        time = "กำลังรอ",
++                        isScreened = item.idexamination != null,
++                        nav = nav
++                    )
++                    Spacer(Modifier.height(6.dp))
++
++                }
++
++            }
++
++        }
++    }
++}
++
++@Composable
++fun SummaryCard(
++    title: String,
++    value: String,
++    icon: ImageVector,
++    modifier: Modifier = Modifier
++) {
++
++    Card(
++        modifier = modifier
++            .height(110.dp),
++        shape = RoundedCornerShape(16.dp),
++        border = BorderStroke(1.dp, Color(0xFF3F6DB5)),
++        colors = CardDefaults.cardColors(containerColor = Color.White)
++    ) {
++
++        Column(
++            modifier = Modifier
++                .fillMaxSize()
++                .padding(10.dp),
++            horizontalAlignment = Alignment.CenterHorizontally,
++            verticalArrangement = Arrangement.Center
++        ) {
++
++            Icon(
++                icon,
++                contentDescription = null,
++                tint = Color.Gray,
++                modifier = Modifier.size(26.dp)
++            )
++
++            Spacer(Modifier.height(6.dp))
++
++            Text(title, fontSize = 12.sp)
++
++            Spacer(Modifier.height(4.dp))
++
++            Text(
++                value,
++                fontWeight = FontWeight.Bold,
++                color = Color(0xFF3F6DB5)
++            )
++        }
++    }
++}
++@Composable
++fun QueueItemCard(
++    appointmentId: Int,
++    queueNumber: String,
++    name: String,
++    time: String,
++    isScreened: Boolean,
++    nav: NavHostController? = null
++) {
++
++    Card(
++        modifier = Modifier.fillMaxWidth(),
++        shape = RoundedCornerShape(20.dp),
++        elevation = CardDefaults.cardElevation(6.dp)
++    ) {
++
++        Row(
++            Modifier
++                .fillMaxWidth()
++                .padding(16.dp),
++            verticalAlignment = Alignment.CenterVertically
++        ) {
++
++            // วงกลมเลขคิว
++            Box(
++                modifier = Modifier
++                    .size(50.dp)
++                    .background(Color(0xFF3F6DB5), CircleShape),
++                contentAlignment = Alignment.Center
++            ) {
++                Text(queueNumber, color = Color.White)
++            }
++
++            Spacer(Modifier.width(16.dp))
++
++            Column(Modifier.weight(1f)) {
++                Text(name, fontWeight = FontWeight.Bold)
++                Text(time, fontSize = 12.sp)
++            }
++
++            Button(
++                onClick = {
++
++                    nav?.navigate("vitals/$appointmentId/$queueNumber/${Uri.encode(name)}")
++
++                },
++                colors = ButtonDefaults.buttonColors(
++                    containerColor =
++                        if (isScreened) Color(0xFF4CAF50)
++                        else Color(0xFF3F7F8B)
++                ),
++                shape = RoundedCornerShape(20.dp)
++            ) {
++                Text("คัดกรอง")
++            }
++
++
++
++
++
++        }
++    }
++}
+\ No newline at end of file
