@@ -69,7 +69,7 @@ fun RegisterHeader(step: String, onBackClick: () -> Unit) {
             }
             Spacer(Modifier.width(20.dp))
             Column {
-                Text("หมอ prompt", color = Color.White, fontSize = 38.sp, fontWeight = FontWeight.Bold)
+                Text("Queni", color = Color.White, fontSize = 38.sp, fontWeight = FontWeight.Bold)
                 Text("สมัครสมาชิก", color = Color.White, fontSize = 20.sp)
             }
         }
@@ -236,7 +236,7 @@ fun LoginScreen(navController: NavHostController) {
 
     Column(modifier = Modifier.fillMaxSize().background(BlueGradient)) {
         Column(modifier = Modifier.fillMaxWidth().padding(start = 35.dp, top = 100.dp, bottom = 50.dp)) {
-            Text("หมอ prompt", color = Color.White, fontSize = 48.sp, fontWeight = FontWeight.Bold)
+            Text("Queni", color = Color.White, fontSize = 48.sp, fontWeight = FontWeight.Bold)
             Text("เข้าสู่ระบบ", color = Color.White, fontSize = 24.sp)
         }
         Surface(modifier = Modifier.fillMaxSize(), color = Color.White, shape = RoundedCornerShape(topStart = 45.dp, topEnd = 45.dp)) {
