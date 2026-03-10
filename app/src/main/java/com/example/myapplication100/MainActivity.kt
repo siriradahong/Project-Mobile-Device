@@ -83,7 +83,7 @@ fun App() {
             composable("home/{fname}/{lname}") { HomeScreen(nav, viewModel) }
             composable("booking") { BookingScreen(nav, viewModel) }
             composable("history") { HistoryScreen(UserSession.iduser) }
-            composable("profile") { ProfileScreen() }
+            composable("profile") {ProfileScreen(nav = nav)}
 
             composable("doctor_home") { DoctorHomeScreen(nav, viewModel) }
             composable("doctor_treatment/{appointmentId}") { entry ->
@@ -449,16 +449,23 @@ fun SelfBooking(navController: NavHostController, viewModel: AppointmentViewMode
                 if(selectedDate.isEmpty()) {
                     Toast.makeText(context, "กรุณาเลือกวันที่", Toast.LENGTH_SHORT).show(); return@Button }
                 val appointment = Appointment(
-                    null,
-                    iduser,
-                    iduser,
-                    selectedDate,
-                    selectedTimeSlot,
-                    symptom,
-                    null,
-                    null,
-                    "Pending",
-                    selectedType)
+                    idAppointment = null,
+                    patient_iduser = iduser,
+                    booking_by_user_id = iduser,
+                    Appointment_date = selectedDate,
+                    time_slot = selectedTimeSlot,
+                    initial_symptom = symptom,
+                    queue_number = null,
+                    status = "Pending",
+                    booking_type = selectedType,
+                    // 🔴 ส่วนที่เพิ่มเข้ามาใหม่สำหรับหมอ
+                    blood_presure_sys = null,  // ใส่ null เพราะตอนจองยังไม่มีค่านี้
+                    blood_presure_dia = null,  // ใส่ null
+                    heart_rate = null,
+                    weight = null,
+                    height = null,
+                    temperature = null
+                )
                 viewModel.createAppointment(appointment)
                 navController.popBackStack()
             }, modifier = Modifier.fillMaxWidth().height(55.dp), shape = RoundedCornerShape(50), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4A8C8E))
@@ -650,17 +657,24 @@ fun OtherBooking(navController: NavHostController, viewModel: AppointmentViewMod
                 if(selectedMember == null || selectedDate.isEmpty()) {
                     Toast.makeText(context, "กรุณากรอกข้อมูลให้ครบ", Toast.LENGTH_SHORT).show(); return@Button
                 }
-                val appointment = Appointment(
-                    null,
-                    selectedMember!!.iduser,
-                    iduser,
-                    selectedDate,
-                    selectedTimeSlot,
-                    symptom,
-                    null,
-                    null,
-                    "Pending",
-                    selectedType)
+                    val appointment = Appointment(
+                        idAppointment = null,
+                        patient_iduser = iduser,
+                        booking_by_user_id = iduser,
+                        Appointment_date = selectedDate,
+                        time_slot = selectedTimeSlot,
+                        initial_symptom = symptom,
+                        queue_number = null,
+                        status = "Pending",
+                        booking_type = selectedType,
+                        // 🔴 ส่วนที่เพิ่มเข้ามาใหม่สำหรับหมอ
+                        blood_presure_sys = null,  // ใส่ null เพราะตอนจองยังไม่มีค่านี้
+                        blood_presure_dia = null,  // ใส่ null
+                        heart_rate = null,
+                        weight = null,
+                        height = null,
+                        temperature = null
+                    )
                 viewModel.createAppointment(appointment)
                 navController.popBackStack()
             },

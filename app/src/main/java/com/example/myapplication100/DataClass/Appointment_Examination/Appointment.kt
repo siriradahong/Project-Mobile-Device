@@ -2,7 +2,7 @@ package com.example.myapplication100.DataClass.Appointment_Examination
 
 data class Appointment(
     val idAppointment: Int? = null,
-    val patient_iduser: Int? = null, // ใส่ ? = null เพื่อความปลอดภัยสัส
+    val patient_iduser: Int? = null, // ใส่ ? = null เพื่อความปลอดภัย
     val booking_by_user_id: Int? = null,
     val Appointment_date: String? = null,
     val time_slot: String? = null,
@@ -12,7 +12,7 @@ data class Appointment(
     val status: String? = null,
     val booking_type: String? = null,
 
-    // --- 🟢 ข้อมูลที่ดึงมาจาก JOIN (ต้องใส่ ? = null ให้หมดสัส!) ---
+    // --- 🟢 ข้อมูลที่ดึงมาจาก JOIN (ต้องใส่ ? = null ให้หมด!) ---
     val patient_name: String? = null,
     val patient_lastname: String? = null,
     val chronic_allergy: String? = null,
@@ -28,5 +28,7 @@ data class Appointment(
     val blood_pressure: String? = null,
     val heart_rate: Int? = null,
 
+    val blood_presure_sys: String?,
+    val blood_presure_dia: String?,
 
 )

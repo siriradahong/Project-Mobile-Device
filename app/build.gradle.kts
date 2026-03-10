@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.example.myapplication100"
-    compileSdk = 35 // ปรับให้เข้ากับมาตรฐานปัจจุบัน (ถ้า 36 ยังไม่ปล่อยตัวเต็ม)
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.example.myapplication100"
@@ -28,29 +28,26 @@ android {
             )
         }
     }
+
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
     kotlinOptions {
         jvmTarget = "11"
     }
+
     buildFeatures {
         compose = true
     }
 
-// ... โค้ดส่วนอื่นๆ คงเดิม ...
-
     packaging {
         resources {
-            // แก้ปัญหา INDEX.LIST และ DEPENDENCIES ที่เจอไปก่อนหน้านี้
             excludes += "/META-INF/INDEX.LIST"
             excludes += "/META-INF/DEPENDENCIES"
-
-            // แก้ปัญหา io.netty.versions.properties (11 ไฟล์) ที่เจอระลอกล่าสุด
             excludes += "/META-INF/io.netty.versions.properties"
-
-            // เพิ่มกลุ่มไฟล์มาตรฐานที่มักจะชนกันบ่อยๆ เพื่อป้องกัน Error ในอนาคต
             excludes += "/META-INF/LICENSE"
             excludes += "/META-INF/LICENSE.txt"
             excludes += "/META-INF/NOTICE"
@@ -61,6 +58,7 @@ android {
 }
 
 dependencies {
+
     // Core
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
@@ -88,13 +86,12 @@ dependencies {
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
 
-    // Firebase App Distribution
+    // Firebase
     implementation(libs.firebase.appdistribution.gradle)
-    implementation(libs.androidx.runtime)
 
-    implementation("androidx.compose.material:material-icons-extended:1.6.0")
-    implementation(libs.androidx.foundation)
-    implementation(libs.androidx.compose.remote.creation.core)
-    implementation(libs.androidx.compose.ui.text)
+    // Desugaring (สำคัญสำหรับ java.time)
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+
+    // Test
     testImplementation(kotlin("test"))
 }

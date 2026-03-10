@@ -40,7 +40,7 @@ import com.example.myapplication100.LoginRegis.UserSession
 import androidx.compose.runtime.*
 
 @Composable
-fun ProfileScreen() {
+fun ProfileScreen(nav: NavController) {
     val userId = UserSession.iduser
 
     Column(
@@ -102,6 +102,41 @@ fun ProfileScreen() {
         }
 
         Spacer(Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 32.dp), // ใส่ padding ซ้าย-ขวา ให้มีช่องว่างนิดหน่อย
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth() // 🔴 จุดสำคัญ: สั่งให้ Card ขยายเต็มความกว้าง Row สัส!
+                    .clickable {
+                        UserSession.clear()
+                        nav.navigate("login") {
+                            popUpTo(0)
+                        }
+                    },
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE))
+            ) {
+                // ใช้ Box เพื่อให้จัดตัวหนังสืออยู่ตรงกลางปุ่มที่ขยายแล้ว
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp), // ปรับความสูงของปุ่มตรงนี้
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "ออกจากระบบ",
+                        color = Color(0xFFD32F2F),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
     }
 }
 
