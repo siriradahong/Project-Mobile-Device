@@ -56,6 +56,12 @@ fun App() {
     val factory = AppointmentViewModelFactory(repository)
     val viewModel: AppointmentViewModel = viewModel(factory = factory)
 
+    val startDestination = when (UserSession.role) {
+        "Nurse" -> "queue"
+        "Doctor" -> "doctor_home"
+        else -> "login"
+    }
+
     Scaffold(
         bottomBar = {
             val showBottomBar = currentRoute.startsWith("home") ||
@@ -69,7 +75,7 @@ fun App() {
             if (showBottomBar) { BottomBar(nav) }
         }
     ) { pad ->
-        NavHost(nav, startDestination = "login", Modifier.padding(pad)) {
+        NavHost(nav, startDestination = startDestination, Modifier.padding(pad)) {
             composable("login") { LoginScreen(nav) }
             composable("register1") { RegisterStep1Screen(nav) }
             composable("register2") { RegisterStep2Screen(nav) }
@@ -692,7 +698,7 @@ fun BottomBar(navController: NavHostController) {
                 selected = currentRoute == "queue",
                 onClick = { navController.navigate("queue") }
             )
-            NavigationBarItem(icon = { Icon(Icons.Default.Payments, null) }, label = { Text("การเงิน") }, selected = currentRoute == "nurse_home", onClick = { navController.navigate("nurse_home") })
+
             NavigationBarItem(icon = { Icon(Icons.Default.Person, null) }, label = { Text("โปรไฟล์") }, selected = currentRoute == "profile", onClick = { navController.navigate("profile") })
         } else {
             val homeRoute = "home/${UserSession.firstName}/${UserSession.lastName}"
