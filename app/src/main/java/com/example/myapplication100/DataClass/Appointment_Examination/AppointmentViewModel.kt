@@ -216,5 +216,21 @@ class AppointmentViewModel(
         }
     }
 
+    // --- เพิ่มฟังก์ชันใหม่สำหรับหน้าหมอโดยเฉพาะ ---
+    fun loadDoctorQueue() {
+        viewModelScope.launch {
+            try {
+                // เรียกผ่าน Repository โดยใช้ฟังก์ชันใหม่ที่เราจะไปเพิ่มใน Repository
+                val result = repository.getDoctorVitalsQueue()
+                if (result != null) {
+                    _allAppointments.value = result
+                }
+            } catch (e: Exception) {
+                Log.e("VM_DOCTOR_ERROR", "Error: ${e.message}")
+            }
+        }
+    }
+
+
 }
 

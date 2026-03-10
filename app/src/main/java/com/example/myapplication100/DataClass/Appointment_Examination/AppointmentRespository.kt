@@ -1,12 +1,13 @@
 package com.example.myapplication100.DataClass.Appointment_Examination
 
+import android.util.Log
 import com.example.myapplication100.DataClass.Family.FamilyMemberDetail
 import com.example.myapplication100.DataClass.Family.FamilyResponse
 import retrofit2.Response
 import com.example.myapplication100.DataClass.HospitalApiService
 import com.example.myapplication100.DataClass.Login.QueueResponse
 import com.example.myapplication100.DataClass.Medicine_Prescription.*
-
+import com.example.myapplication100.DataClass.HospitalApiService.*
 class AppointmentRepository(
     private val api: HospitalApiService
 ) {
@@ -84,4 +85,17 @@ class AppointmentRepository(
     suspend fun getCurrentQueueStatus(): Response<QueueResponse> {
         return api.getCurrentQueueStatus()
     }
+
+
+    suspend fun getDoctorVitalsQueue(): List<Appointment>? {
+        return try {
+            // ถ้าคืนค่าเป็น List เลย ก็ไม่ต้องเช็ก isSuccessful หรือ .body()
+            val response = api.getDoctorQueue()
+            response // คืนค่าตัวแปร response ออกไปเลยสัส!
+        } catch (e: Exception) {
+            Log.e("RepoError", e.message ?: "")
+            null
+        }
+    }
+
 }

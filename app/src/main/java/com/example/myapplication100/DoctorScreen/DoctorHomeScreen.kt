@@ -27,12 +27,25 @@ import androidx.navigation.NavHostController
 import com.example.myapplication100.DataClass.Appointment_Examination.AppointmentViewModel
 import kotlinx.coroutines.delay
 import com.example.myapplication100.DataClass.Medicine_Prescription.Medicine
+import kotlinx.coroutines.launch
+
 @Composable
 fun DoctorHomeScreen(nav: NavHostController, viewModel: AppointmentViewModel) {
     LaunchedEffect(Unit) {
-        while (true) {
-            viewModel.loadAllAppointments()
-            delay(5000)
+        // รันของเก่า (ถ้ายังจำเป็นต้องใช้)
+        launch {
+            while (true) {
+                viewModel.loadAllAppointments()
+                delay(5000)
+            }
+        }
+
+        // รันของใหม่ (สำหรับข้อมูล Vitals)
+        launch {
+            while (true) {
+                viewModel.loadDoctorQueue()
+                delay(5000)
+            }
         }
     }
 
@@ -186,23 +199,30 @@ fun DoctorTreatmentScreen(nav: NavHostController, appointmentId: Int?, viewModel
     ) { padding ->
         LazyColumn(modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp)) {
             item {
+                // ส่วนแสดงชื่อและคิว
                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                     Text("${patient?.patient_name ?: "ชื่อคนไข้"} ${patient?.patient_lastname ?: ""}", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                    Text("คิว (${patient?.queue_number ?: "A00"})", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = mainBlue)
+                    Text("คิว (${patient?.queue_number ?: "A00"})", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF3F51B5))
                 }
                 Spacer(Modifier.height(16.dp))
 
-                // Vitals
+                // --- 🔴 ส่วนที่ใช้คิวรี่ตัวใหม่แสดง Vitals ---
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    VitalBox("BP", patient?.blood_pressure ?: "-", Color.Red)
-                    VitalBox("TP", "36.5", Color.Black)
-                    VitalBox("HG", "175", Color.Black)
-                    VitalBox("WG", "70", Color.Black)
+                    val sys = patient?.blood_presure_sys?.toString() ?: "-"
+                    val dia = patient?.blood_presure_dia?.toString() ?: "-"
+                    val bpDisplay = if (sys != "-" || dia != "-") "$sys/$dia" else "-"
+
+                    VitalBox("BP", bpDisplay, Color.Red)
+                    VitalBox("TP", patient?.temperature?.toString() ?: "-", Color.Black)
+                    VitalBox("HG", patient?.height?.toString() ?: "-", Color.Black)
+                    VitalBox("WG", patient?.weight?.toString() ?: "-", Color.Black)
                 }
+                // ------------------------------------------
+
                 Spacer(Modifier.height(16.dp))
 
-                // ประวัติแพ้ยา
-                Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF5D6D9B)), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+                // ส่วนประวัติแพ้ยา
+                Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF5D6D9B)), modifier = Modifier.fillMaxWidth()) {
                     Text(" ประวัติแพ้ยา: ${patient?.drug_allergy ?: "ไม่มี"}", color = Color.White, modifier = Modifier.padding(12.dp), fontWeight = FontWeight.Bold)
                 }
                 Spacer(Modifier.height(20.dp))

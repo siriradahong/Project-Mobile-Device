@@ -2,6 +2,7 @@ package com.example.myapplication100.NurseScreen
 
 
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -28,6 +29,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.SegmentedButtonDefaults.Icon
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -74,6 +81,17 @@ fun VitalsScreen(modifier: Modifier = Modifier,
                 .padding(top = 12.dp),
             contentAlignment = Alignment.Center
         ) {
+
+            IconButton(
+                onClick = { nav?.popBackStack() },
+                modifier = Modifier.align(Alignment.CenterStart)
+            ) {
+                Icon(
+                    Icons.Default.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color.White
+                )
+            }
 
 
             Text(
@@ -227,8 +245,21 @@ fun VitalsScreen(modifier: Modifier = Modifier,
 
             Spacer(Modifier.height(8.dp))
 
+            val isFormValid =
+                sys.isNotBlank() &&
+                        dia.isNotBlank() &&
+                        heartRate.isNotBlank() &&
+                        weight.isNotBlank() &&
+                        height.isNotBlank() &&
+                        temp.isNotBlank()
+
             Button(
                 onClick = {
+
+                    if (!isFormValid) {
+                        Toast.makeText(context, "กรุณากรอกข้อมูลให้ครบ", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
 
                     val vitals = VitalsRequestnurse(
                         appointment_id = appointmentId,
@@ -247,8 +278,8 @@ fun VitalsScreen(modifier: Modifier = Modifier,
                         }
                     }
 
-
                 },
+                enabled = isFormValid,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(24.dp),
                 colors = ButtonDefaults.buttonColors(
