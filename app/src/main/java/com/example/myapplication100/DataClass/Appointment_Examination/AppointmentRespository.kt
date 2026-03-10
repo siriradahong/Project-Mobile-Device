@@ -11,18 +11,18 @@ import com.example.myapplication100.DataClass.HospitalApiService.*
 class AppointmentRepository(
     private val api: HospitalApiService
 ) {
-    // 1. สร้างนัดหมาย
+    // 1. create appoint
     suspend fun createAppointment(appointment: Appointment): Response<AppointmentResponse> {
         return api.createAppointment(appointment)
     }
 
-    // 2. ดึงนัดหมายรายคน
+    // 2. get appoint
     suspend fun getAppointmentsByUser(patient_iduser: Int): List<Appointment>? {
         val response = api.getAppointmentsByUser(patient_iduser)
         return if (response.isSuccessful) response.body() else null
     }
 
-    // 3. ดึงนัดหมายทั้งหมด
+    // 3. get all appoint
     suspend fun getAllAppointments(): List<Appointment>? {
         return try {
             val response = api.getAllAppointments()
@@ -30,12 +30,12 @@ class AppointmentRepository(
         } catch (e: Exception) { null }
     }
 
-    // 4. ดึงกลุ่มครอบครัวทั้งหมด
+    // 4. get all fam
     suspend fun getAllFamilies(): Response<List<FamilyResponse>> {
         return api.getAllFamilies()
     }
 
-    // 5. ดึงสมาชิกในครอบครัว
+    // 5. get fam member
     suspend fun getFamilyMembers(userId: Int): Response<List<FamilyMemberDetail>> {
         return api.getFamilyMembersByUserId(userId)
     }
@@ -63,7 +63,7 @@ class AppointmentRepository(
         } catch (e: Exception) { false }
     }
 
-    // 7. อัปเดตสถานะคิว
+    // 7. update Q
     suspend fun updateAppointmentStatus(id: Int, status: String): Boolean {
         return try {
             api.updateStatus(id, status).isSuccessful

@@ -148,7 +148,7 @@ class AppointmentViewModel(
         }
     }
 
-    // --- 💊 โหลดรายชื่อยา ---
+    // --- โหลดรายชื่อยา ---
     fun loadMedicines() {
         viewModelScope.launch {
             try {
@@ -162,7 +162,7 @@ class AppointmentViewModel(
         }
     }
 
-    // --- 📊 โหลดนัดหมายคนไข้ (แก้ให้คำนวณคิวด้วย) ---
+    // --- โหลดนัดหมายคนไข้ (แก้ให้คำนวณคิวด้วย) ---
     fun loadAppointments(patient_iduser: Int) {
         viewModelScope.launch {
             try {
@@ -184,7 +184,7 @@ class AppointmentViewModel(
         }
     }
 
-    // --- 🏥 งานของพยาบาล ---
+    // --- งานของพยาบาล ---
     fun nurseCompleteBilling(idAppointment: Int, totalCost: Double) {
         viewModelScope.launch {
             try {

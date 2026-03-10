@@ -8,7 +8,6 @@ data class DoctorQueueItem(
     val patient_lastname: String?,
     val drug_allergy: String?,
     val initial_symptom: String?,
-    // ข้อมูลจากตาราง Exam (ปรับให้สะกด blood_presure ตาม DB เป๊ะๆ)
     val blood_presure_sys: String?,
     val blood_presure_dia: String?,
     val heart_rate: String?,

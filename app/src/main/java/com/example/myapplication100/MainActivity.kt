@@ -522,7 +522,7 @@ fun OtherBooking(navController: NavHostController, viewModel: AppointmentViewMod
 
             Box {
                 OutlinedTextField(
-                    value = if(selectedMember != null) "${selectedMember?.firstName} ${selectedMember?.lastName}" else "เลือกสมาชิก",
+                    value = if(selectedMember != null) "${selectedMember?.firstName} ${selectedMember?.lastName}" else if(viewModel.familyMembers.isEmpty()) "ไม่มีสมาชิกในครอบครัว" else "เลือกสมาชิก",
                     onValueChange = {},
                     readOnly = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -535,10 +535,12 @@ fun OtherBooking(navController: NavHostController, viewModel: AppointmentViewMod
                     onDismissRequest = { expanded = false }
                 ) {
                     viewModel.familyMembers.forEach { member ->
-                        DropdownMenuItem(
-                            text = { Text("${member.firstName} ${member.lastName}") },
-                            onClick = { selectedMember = member; expanded = false }
-                        )
+                        if (member.iduser != UserSession.iduser) {
+                            DropdownMenuItem(
+                                text = { Text("${member.firstName} ${member.lastName}") },
+                                onClick = { selectedMember = member; expanded = false }
+                            )
+                        }
                     }
                 }
             }
@@ -667,9 +669,9 @@ fun OtherBooking(navController: NavHostController, viewModel: AppointmentViewMod
                         queue_number = null,
                         status = "Pending",
                         booking_type = selectedType,
-                        // 🔴 ส่วนที่เพิ่มเข้ามาใหม่สำหรับหมอ
-                        blood_presure_sys = null,  // ใส่ null เพราะตอนจองยังไม่มีค่านี้
-                        blood_presure_dia = null,  // ใส่ null
+
+                        blood_presure_sys = null,
+                        blood_presure_dia = null,
                         heart_rate = null,
                         weight = null,
                         height = null,
