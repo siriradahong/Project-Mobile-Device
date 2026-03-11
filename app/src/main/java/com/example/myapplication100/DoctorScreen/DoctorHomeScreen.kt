@@ -33,19 +33,10 @@ import kotlinx.coroutines.launch
 fun DoctorHomeScreen(nav: NavHostController, viewModel: AppointmentViewModel) {
     LaunchedEffect(Unit) {
         // รันของเก่า (ถ้ายังจำเป็นต้องใช้)
-        launch {
-            while (true) {
-                viewModel.loadAllAppointments()
-                delay(5000)
-            }
-        }
+        while (true) {
+            viewModel.loadDoctorQueue() // หรือ loadAllAppointments ที่แก้ SQL แล้ว
+            delay(5000)
 
-        // รันของใหม่ (สำหรับข้อมูล Vitals)
-        launch {
-            while (true) {
-                viewModel.loadDoctorQueue()
-                delay(5000)
-            }
         }
     }
 
