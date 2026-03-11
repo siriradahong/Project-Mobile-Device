@@ -138,8 +138,7 @@ interface HospitalApiService {
         ): Response<Unit>
 
 
-    @GET("appointments/doctor-queue") // 👈 ตรงกับที่เราเขียนใน server.js
-    suspend fun getDoctorQueue(): List<Appointment> // หรือ List<DoctorQueueItem>
+
 
 
 
