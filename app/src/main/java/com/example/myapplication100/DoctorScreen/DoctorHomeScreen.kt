@@ -144,7 +144,24 @@ fun DoctorTreatmentScreen(nav: NavHostController, appointmentId: Int?, viewModel
     val mainBlue = Color(0xFF3F51B5)
 
     // --- 📅 โซนปฏิทินเลือกวันนัด ---
-    val datePickerState = rememberDatePickerState()
+    // ในหน้า DoctorTreatmentScreen
+    val datePickerState = rememberDatePickerState(
+        selectableDates = object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                // ดึงเวลาปัจจุบัน (ลบเวลาส่วนเกินออกเพื่อเปรียบเทียบแค่ระดับวัน)
+                val today = java.util.Calendar.getInstance().apply {
+                    set(java.util.Calendar.HOUR_OF_DAY, 0)
+                    set(java.util.Calendar.MINUTE, 0)
+                    set(java.util.Calendar.SECOND, 0)
+                    set(java.util.Calendar.MILLISECOND, 0)
+                }.timeInMillis
+
+                // ให้เลือกได้เฉพาะ วันนี้ หรือ อนาคต เท่านั้น
+                return utcTimeMillis >= today
+            }
+        }
+    )
+
     var showDatePicker by remember { mutableStateOf(false) }
 
     if (showDatePicker) {
