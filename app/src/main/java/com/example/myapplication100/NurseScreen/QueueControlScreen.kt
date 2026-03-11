@@ -39,6 +39,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
@@ -263,25 +264,25 @@ fun QueueItemCard(
                 Text(time, fontSize = 12.sp)
             }
 
-            Button(
-                onClick = {
-
-                    nav?.navigate("vitals/$appointmentId/$queueNumber/${Uri.encode(name)}")
-
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor =
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(
                         if (isScreened) Color(0xFF4CAF50)
                         else Color(0xFF3F7F8B)
-                ),
-                shape = RoundedCornerShape(20.dp)
+                    )
+                    .clickable {
+                        nav?.navigate("vitals/$appointmentId/$queueNumber/${Uri.encode(name)}")
+                    }
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Text("คัดกรอง")
+                Text(
+                    text = "คัดกรอง",
+                    color = Color.White,
+                    fontSize = 12.sp
+                )
             }
-
-
-
-
 
         }
     }

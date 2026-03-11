@@ -23,9 +23,6 @@ interface HospitalApiService {
     @POST("login")
     suspend fun loginUser(@Body request: LoginRequest): Response<LoginResponse>
 
-    @GET("family/all-groups")
-    suspend fun getAllFamilies(): Response<List<FamilyResponse>>
-
     @GET("users")
     suspend fun getAllUsers(): Response<List<UserResponse>>
 
@@ -120,28 +117,23 @@ interface HospitalApiService {
     suspend fun getCurrentQueueStatus(): retrofit2.Response<QueueResponse>
 
 
+    @GET("appointments/today")
+    suspend fun getTodayQueue(): List<Appointmentnurse>
 
+    @GET("appointments/summary")
+    suspend fun getQueueSummary(): QueueSummary
 
-
-
-
-
-        @GET("appointments/today")
-        suspend fun getTodayQueue(): List<Appointmentnurse>
-
-        @GET("appointments/summary")
-        suspend fun getQueueSummary(): QueueSummary
-
-        @POST("vitals")
-        suspend fun saveVitals(
-            @Body vitals: VitalsRequestnurse
-        ): Response<Unit>
+    @POST("vitals")
+    suspend fun saveVitals(
+        @Body vitals: VitalsRequestnurse
+    ): Response<Unit>
 
 
     @GET("appointments/doctor-queue") // 👈 ตรงกับที่เราเขียนใน server.js
     suspend fun getDoctorQueue(): List<Appointment> // หรือ List<DoctorQueueItem>
 
-
-
+    // ใน HospitalApiService.kt
+    @GET("family/all")
+    suspend fun getAllFamilies(): Response<List<FamilyResponse>>
 
 }
