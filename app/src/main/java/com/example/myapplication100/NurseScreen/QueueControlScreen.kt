@@ -130,7 +130,7 @@ fun QueueControlScreen(modifier: Modifier = Modifier,
             ) {
 
                 SummaryCard(
-                    title = "รอเรียกคิว",
+                    title = "รอคัดกรอง",
                     value = "${summary.waiting} คน",
                     icon = Icons.Default.List,
                     modifier = Modifier.weight(1f)

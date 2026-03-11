@@ -88,6 +88,7 @@ dependencies {
 
     // Firebase
     implementation(libs.firebase.appdistribution.gradle)
+    implementation(libs.androidx.junit.ktx)
 
     // Desugaring (สำคัญสำหรับ java.time)
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
