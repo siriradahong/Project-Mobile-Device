@@ -329,6 +329,7 @@ fun SelfBooking(navController: NavHostController, viewModel: AppointmentViewMode
     val datePickerDialog = DatePickerDialog(context, { _, y, m, d ->
         selectedDate = String.format("%04d-%02d-%02d", y, m + 1, d)
     }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH))
+    datePickerDialog.datePicker.minDate = System.currentTimeMillis()
 
     Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF2F2F2))) {
         Box(
@@ -508,6 +509,7 @@ fun OtherBooking(navController: NavHostController, viewModel: AppointmentViewMod
     val datePickerDialog = DatePickerDialog(context, { _, y, m, d ->
         selectedDate = String.format("%04d-%02d-%02d", y, m + 1, d)
     }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH))
+    datePickerDialog.datePicker.minDate = System.currentTimeMillis()
 
     LaunchedEffect(Unit) { viewModel.loadFamilyMembers(iduser) }
 

@@ -165,7 +165,8 @@ fun DoctorTreatmentScreen(nav: NavHostController, appointmentId: Int?, viewModel
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) { Text("ยกเลิก") }
             }
-        ) {
+        )
+        {
             DatePicker(state = datePickerState)
         }
     }
