@@ -166,6 +166,7 @@ fun QueueControlScreen(modifier: Modifier = Modifier,
                         queueNumber = item.queue_number ?: "-",
                         name = "${item.firstname} ${item.lastname}",
                         time = "",
+                        status = item.status,
                         isScreened = item.idexamination != null,
                         nav = nav
                     )
@@ -230,6 +231,7 @@ fun QueueItemCard(
     queueNumber: String,
     name: String,
     time: String,
+    status: String,
     isScreened: Boolean,
     nav: NavHostController? = null
 ) {
@@ -268,10 +270,14 @@ fun QueueItemCard(
                 modifier = Modifier
                     .clip(RoundedCornerShape(50))
                     .background(
-                        if (isScreened) Color(0xFF4CAF50)
-                        else Color(0xFF3F7F8B)
+                        when {
+                            status == "Completed" -> Color.Gray
+                            isScreened -> Color(0xFF4CAF50)
+                            else -> Color(0xFF3F7F8B)
+                        }
+
                     )
-                    .clickable {
+                    .clickable(enabled = status == "Pending" || status == "Screening") {
                         nav?.navigate("vitals/$appointmentId/$queueNumber/${Uri.encode(name)}")
                     }
                     .padding(horizontal = 16.dp, vertical = 6.dp),

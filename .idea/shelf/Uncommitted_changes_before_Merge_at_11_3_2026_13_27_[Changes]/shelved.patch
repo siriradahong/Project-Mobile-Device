@@ -1,0 +1,12 @@
+Index: .idea/.name
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/.name b/.idea/.name
+deleted file mode 100644
+--- a/.idea/.name	(revision 6a4f0146f01d74b7be1cc359c26e017e09f870e9)
++++ /dev/null	(revision 6a4f0146f01d74b7be1cc359c26e017e09f870e9)
+@@ -1,1 +0,0 @@
+-My Application100
+\ No newline at end of file

@@ -1,0 +1,165 @@
+Index: app/build.gradle.kts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>plugins {\r\n    alias(libs.plugins.android.application)\r\n    alias(libs.plugins.kotlin.android)\r\n    alias(libs.plugins.kotlin.compose)\r\n    id(\"com.google.devtools.ksp\")\r\n}\r\n\r\nandroid {\r\n    namespace = \"com.example.myapplication100\"\r\n    compileSdk = 35 // ปรับให้เข้ากับมาตรฐานปัจจุบัน (ถ้า 36 ยังไม่ปล่อยตัวเต็ม)\r\n\r\n    defaultConfig {\r\n        applicationId = \"com.example.myapplication100\"\r\n        minSdk = 24\r\n        targetSdk = 35\r\n        versionCode = 1\r\n        versionName = \"1.0\"\r\n\r\n        testInstrumentationRunner = \"androidx.test.runner.AndroidJUnitRunner\"\r\n    }\r\n\r\n    buildTypes {\r\n        release {\r\n            isMinifyEnabled = false\r\n            proguardFiles(\r\n                getDefaultProguardFile(\"proguard-android-optimize.txt\"),\r\n                \"proguard-rules.pro\"\r\n            )\r\n        }\r\n    }\r\n    compileOptions {\r\n        sourceCompatibility = JavaVersion.VERSION_11\r\n        targetCompatibility = JavaVersion.VERSION_11\r\n    }\r\n    kotlinOptions {\r\n        jvmTarget = \"11\"\r\n    }\r\n    buildFeatures {\r\n        compose = true\r\n    }\r\n\r\n// ... โค้ดส่วนอื่นๆ คงเดิม ...\r\n\r\n    packaging {\r\n        resources {\r\n            // แก้ปัญหา INDEX.LIST และ DEPENDENCIES ที่เจอไปก่อนหน้านี้\r\n            excludes += \"/META-INF/INDEX.LIST\"\r\n            excludes += \"/META-INF/DEPENDENCIES\"\r\n\r\n            // แก้ปัญหา io.netty.versions.properties (11 ไฟล์) ที่เจอระลอกล่าสุด\r\n            excludes += \"/META-INF/io.netty.versions.properties\"\r\n\r\n            // เพิ่มกลุ่มไฟล์มาตรฐานที่มักจะชนกันบ่อยๆ เพื่อป้องกัน Error ในอนาคต\r\n            excludes += \"/META-INF/LICENSE\"\r\n            excludes += \"/META-INF/LICENSE.txt\"\r\n            excludes += \"/META-INF/NOTICE\"\r\n            excludes += \"/META-INF/NOTICE.txt\"\r\n            excludes += \"/META-INF/ASL2.0\"\r\n        }\r\n    }\r\n}\r\n\r\ndependencies {\r\n    // Core\r\n    implementation(\"androidx.core:core-ktx:1.13.1\")\r\n    implementation(\"androidx.lifecycle:lifecycle-runtime-ktx:2.8.4\")\r\n    implementation(\"androidx.activity:activity-compose:1.9.0\")\r\n\r\n    // Compose BOM\r\n    implementation(platform(\"androidx.compose:compose-bom:2024.06.00\"))\r\n\r\n    implementation(\"androidx.compose.ui:ui\")\r\n    implementation(\"androidx.compose.ui:ui-graphics\")\r\n    implementation(\"androidx.compose.ui:ui-tooling-preview\")\r\n    implementation(\"androidx.compose.foundation:foundation\")\r\n    implementation(\"androidx.compose.runtime:runtime\")\r\n\r\n    // Material 3\r\n    implementation(\"androidx.compose.material3:material3\")\r\n\r\n    // Icons\r\n    implementation(\"androidx.compose.material:material-icons-extended\")\r\n\r\n    // Navigation\r\n    implementation(\"androidx.navigation:navigation-compose:2.7.7\")\r\n\r\n    // Retrofit\r\n    implementation(\"com.squareup.retrofit2:retrofit:2.9.0\")\r\n    implementation(\"com.squareup.retrofit2:converter-gson:2.9.0\")\r\n\r\n    // Firebase App Distribution\r\n    implementation(libs.firebase.appdistribution.gradle)\r\n    implementation(libs.androidx.runtime)\r\n\r\n    implementation(\"androidx.compose.material:material-icons-extended:1.6.0\")\r\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/build.gradle.kts b/app/build.gradle.kts
+--- a/app/build.gradle.kts	(revision 70d3a58dfb12fcd626542c7449e63c704e555a87)
++++ b/app/build.gradle.kts	(date 1773210842450)
+@@ -2,17 +2,22 @@
+     alias(libs.plugins.android.application)
+     alias(libs.plugins.kotlin.android)
+     alias(libs.plugins.kotlin.compose)
++
+     id("com.google.devtools.ksp")
++
++
+ }
+ 
+ android {
+     namespace = "com.example.myapplication100"
+-    compileSdk = 35 // ปรับให้เข้ากับมาตรฐานปัจจุบัน (ถ้า 36 ยังไม่ปล่อยตัวเต็ม)
++    compileSdk {
++        version = release(36)
++    }
+ 
+     defaultConfig {
+         applicationId = "com.example.myapplication100"
+         minSdk = 24
+-        targetSdk = 35
++        targetSdk = 36
+         versionCode = 1
+         versionName = "1.0"
+ 
+@@ -38,59 +43,29 @@
+     buildFeatures {
+         compose = true
+     }
+-
+-// ... โค้ดส่วนอื่นๆ คงเดิม ...
+-
+-    packaging {
+-        resources {
+-            // แก้ปัญหา INDEX.LIST และ DEPENDENCIES ที่เจอไปก่อนหน้านี้
+-            excludes += "/META-INF/INDEX.LIST"
+-            excludes += "/META-INF/DEPENDENCIES"
+-
+-            // แก้ปัญหา io.netty.versions.properties (11 ไฟล์) ที่เจอระลอกล่าสุด
+-            excludes += "/META-INF/io.netty.versions.properties"
+-
+-            // เพิ่มกลุ่มไฟล์มาตรฐานที่มักจะชนกันบ่อยๆ เพื่อป้องกัน Error ในอนาคต
+-            excludes += "/META-INF/LICENSE"
+-            excludes += "/META-INF/LICENSE.txt"
+-            excludes += "/META-INF/NOTICE"
+-            excludes += "/META-INF/NOTICE.txt"
+-            excludes += "/META-INF/ASL2.0"
+-        }
+-    }
+ }
+ 
+ dependencies {
+-    // Core
+-    implementation("androidx.core:core-ktx:1.13.1")
+-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
+-    implementation("androidx.activity:activity-compose:1.9.0")
+-
+-    // Compose BOM
+-    implementation(platform("androidx.compose:compose-bom:2024.06.00"))
+-
+-    implementation("androidx.compose.ui:ui")
+-    implementation("androidx.compose.ui:ui-graphics")
+-    implementation("androidx.compose.ui:ui-tooling-preview")
+-    implementation("androidx.compose.foundation:foundation")
+-    implementation("androidx.compose.runtime:runtime")
+-
+-    // Material 3
+-    implementation("androidx.compose.material3:material3")
+-
+-    // Icons
+-    implementation("androidx.compose.material:material-icons-extended")
+-
+-    // Navigation
+-    implementation("androidx.navigation:navigation-compose:2.7.7")
+-
+-    // Retrofit
+-    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+-    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+-
+-    // Firebase App Distribution
+-    implementation(libs.firebase.appdistribution.gradle)
+-    implementation(libs.androidx.runtime)
+-
++    implementation(libs.androidx.core.ktx)
++    implementation(libs.androidx.lifecycle.runtime.ktx)
++    implementation(libs.androidx.activity.compose)
++    implementation(platform(libs.androidx.compose.bom))
++    implementation(libs.androidx.compose.ui)
++    implementation(libs.androidx.compose.ui.graphics)
++    implementation(libs.androidx.compose.ui.tooling.preview)
++    implementation(libs.androidx.compose.material3)
++    implementation(libs.androidx.ui)
++    implementation(libs.androidx.navigation.compose)
++    implementation(libs.androidx.navigation.runtime.ktx)
++    implementation(libs.androidx.compose.runtime)
++    testImplementation(libs.junit)
++    androidTestImplementation(libs.androidx.junit)
++    androidTestImplementation(libs.androidx.espresso.core)
++    androidTestImplementation(platform(libs.androidx.compose.bom))
++    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
++    debugImplementation(libs.androidx.compose.ui.tooling)
++    debugImplementation(libs.androidx.compose.ui.test.manifest)
++    implementation("androidx.compose.material3:material3:1.2.1")
+     implementation("androidx.compose.material:material-icons-extended:1.6.0")
++    implementation("androidx.compose.material:material-icons-extended")
+ }
+\ No newline at end of file
+Index: app/src/main/java/com/example/myapplication100/ProfileScreen.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.example.myapplication100\r\n\r\nimport androidx.compose.foundation.background\r\nimport androidx.compose.foundation.clickable\r\nimport androidx.compose.foundation.layout.Arrangement\r\nimport androidx.compose.runtime.Composable\r\nimport androidx.compose.foundation.layout.Box\r\nimport androidx.compose.foundation.layout.Column\r\nimport androidx.compose.foundation.layout.Row\r\nimport androidx.compose.foundation.layout.Spacer\r\nimport androidx.compose.foundation.layout.fillMaxSize\r\nimport androidx.compose.foundation.layout.fillMaxWidth\r\nimport androidx.compose.foundation.layout.height\r\nimport androidx.compose.foundation.layout.padding\r\nimport androidx.compose.foundation.rememberScrollState\r\nimport androidx.compose.foundation.shape.RoundedCornerShape\r\nimport androidx.compose.foundation.verticalScroll\r\nimport androidx.compose.material.icons.Icons\r\nimport androidx.compose.material.icons.filled.KeyboardArrowDown\r\nimport androidx.compose.material.icons.filled.KeyboardArrowUp\r\nimport androidx.compose.material3.Card\r\nimport androidx.compose.material3.CardDefaults\r\nimport androidx.compose.material3.Divider\r\nimport androidx.compose.material3.Icon\r\nimport androidx.compose.material3.Text\r\nimport androidx.compose.runtime.mutableStateOf\r\nimport androidx.compose.runtime.remember\r\nimport androidx.compose.ui.Alignment\r\nimport androidx.compose.ui.Modifier\r\nimport androidx.compose.ui.draw.clip\r\nimport androidx.compose.ui.graphics.Color\r\nimport androidx.compose.ui.text.font.FontWeight\r\nimport androidx.compose.ui.unit.dp\r\nimport androidx.compose.ui.unit.sp\r\nimport androidx.navigation.NavController\r\nimport com.example.myapplication100.DataClass.Appointment_Examination.Examination\r\nimport com.example.myapplication100.LoginRegis.RetrofitClient\r\nimport com.example.myapplication100.LoginRegis.UserSession\r\n\r\nimport androidx.compose.runtime.*\r\n\r\n@Composable\r\nfun ProfileScreen() {\r\n    val userId = UserSession.iduser\r\n\r\n    Column(\r\n        Modifier\r\n            .fillMaxSize()\r\n            .background(Color(0xFFF0F4FF))\r\n            .verticalScroll(rememberScrollState())\r\n    ) {\r\n        // Header\r\n        Box(\r\n            modifier = Modifier\r\n                .fillMaxWidth()\r\n                .background(Color(0xFF2F5DAA))\r\n                .padding(24.dp),\r\n            contentAlignment = Alignment.Center\r\n        ) {\r\n            Column(horizontalAlignment = Alignment.CenterHorizontally) {\r\n                Text(\"ข้อมูลส่วนตัว\", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White)\r\n                Spacer(Modifier.height(8.dp))\r\n                Text(\r\n                    text = \"${UserSession.firstName ?: \"\"} ${UserSession.lastName ?: \"\"}\",\r\n                    fontSize = 18.sp,\r\n                    color = Color.White\r\n                )\r\n                Text(UserSession.citizenId ?: \"\", fontSize = 14.sp, color = Color.White.copy(alpha = 0.8f))\r\n            }\r\n        }\r\n\r\n        Spacer(Modifier.height(16.dp))\r\n\r\n        // ข้อมูลส่วนตัว\r\n        ExpandableCard(title = \"ข้อมูลส่วนตัว\") {\r\n            InfoCard(userId = userId)\r\n        }\r\n        Spacer(Modifier.height(12.dp))\r\n\r\n        // ประวัติการรักษา\r\n        ExpandableCard(title = \"ประวัติการรักษา\") {\r\n            HistoryScreen(userId = userId)\r\n        }\r\n\r\n        Spacer(Modifier.height(12.dp))\r\n\r\n        // รายการยาปัจจุบัน\r\n        ExpandableCard(title = \"รายการยาปัจจุบัน\") {\r\n            MedicineCard(userId = userId)\r\n        }\r\n\r\n        Spacer(Modifier.height(24.dp))\r\n\r\n        ExpandableCard(title = \"สมาชิกครอบครัว\") {\r\n            FamilySection(userId = userId)\r\n        }\r\n\r\n        Spacer(Modifier.height(12.dp))\r\n\r\n        ExpandableCard(title = \"จัดการรายชื่อครอบครัว\") {\r\n            FamilyMemberListView(userId = userId)\r\n        }\r\n\r\n        Spacer(Modifier.height(12.dp))\r\n    }\r\n}\r\n\r\n@Composable\r\nfun ExpandableCard(title: String, content: @Composable () -> Unit) {\r\n    var expanded by remember { mutableStateOf(true) }\r\n\r\n    Card(\r\n        modifier = Modifier\r\n            .fillMaxWidth()\r\n            .padding(horizontal = 16.dp),\r\n        shape = RoundedCornerShape(16.dp),\r\n        colors = CardDefaults.cardColors(containerColor = Color.White),\r\n        elevation = CardDefaults.cardElevation(2.dp)\r\n    ) {\r\n        Column {\r\n            // Header row\r\n            Row(\r\n                modifier = Modifier\r\n                    .fillMaxWidth()\r\n                    .clickable { expanded = !expanded }\r\n                    .padding(16.dp),\r\n                horizontalArrangement = Arrangement.SpaceBetween,\r\n                verticalAlignment = Alignment.CenterVertically\r\n            ) {\r\n                Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold)\r\n                Icon(\r\n                    imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,\r\n                    contentDescription = null\r\n                )\r\n            }\r\n\r\n            if (expanded) {\r\n                Divider(color = Color(0xFFEEEEEE))\r\n                content()\r\n            }\r\n        }\r\n    }\r\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/example/myapplication100/ProfileScreen.kt b/app/src/main/java/com/example/myapplication100/ProfileScreen.kt
+--- a/app/src/main/java/com/example/myapplication100/ProfileScreen.kt	(revision 70d3a58dfb12fcd626542c7449e63c704e555a87)
++++ b/app/src/main/java/com/example/myapplication100/ProfileScreen.kt	(date 1773211003264)
+@@ -42,7 +42,6 @@
+ @Composable
+ fun ProfileScreen() {
+     val userId = UserSession.iduser
+-
+     Column(
+         Modifier
+             .fillMaxSize()
+Index: gradle/libs.versions.toml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>[versions]\r\nagp = \"8.13.2\"\r\nkotlin = \"2.0.21\"\r\ncoreKtx = \"1.17.0\"\r\njunit = \"4.13.2\"\r\njunitVersion = \"1.3.0\"\r\nespressoCore = \"3.7.0\"\r\nlifecycleRuntimeKtx = \"2.10.0\"\r\nactivityCompose = \"1.12.4\"\r\ncomposeBom = \"2024.09.00\"\r\nui = \"1.10.3\"\r\nnavigationCompose = \"2.9.7\"\r\nnavigationRuntimeKtx = \"2.9.7\"\r\nruntime = \"1.10.3\"\r\nfoundation = \"1.10.3\"\r\nprotoliteWellKnownTypes = \"18.0.1\"\r\nmaterial3 = \"1.4.0\"\r\nroomCommonJvm = \"2.8.4\"\r\nfirebaseAppdistributionGradle = \"5.2.1\"\r\nruntimeVersion = \"1.10.4\"\r\n\r\n[libraries]\r\nandroidx-core-ktx = { group = \"androidx.core\", name = \"core-ktx\", version.ref = \"coreKtx\" }\r\njunit = { group = \"junit\", name = \"junit\", version.ref = \"junit\" }\r\nandroidx-junit = { group = \"androidx.test.ext\", name = \"junit\", version.ref = \"junitVersion\" }\r\nandroidx-espresso-core = { group = \"androidx.test.espresso\", name = \"espresso-core\", version.ref = \"espressoCore\" }\r\nandroidx-lifecycle-runtime-ktx = { group = \"androidx.lifecycle\", name = \"lifecycle-runtime-ktx\", version.ref = \"lifecycleRuntimeKtx\" }\r\nandroidx-activity-compose = { group = \"androidx.activity\", name = \"activity-compose\", version.ref = \"activityCompose\" }\r\nandroidx-compose-bom = { group = \"androidx.compose\", name = \"compose-bom\", version.ref = \"composeBom\" }\r\nandroidx-compose-ui = { group = \"androidx.compose.ui\", name = \"ui\" }\r\nandroidx-compose-ui-graphics = { group = \"androidx.compose.ui\", name = \"ui-graphics\" }\r\nandroidx-compose-ui-tooling = { group = \"androidx.compose.ui\", name = \"ui-tooling\" }\r\nandroidx-compose-ui-tooling-preview = { group = \"androidx.compose.ui\", name = \"ui-tooling-preview\" }\r\nandroidx-compose-ui-test-manifest = { group = \"androidx.compose.ui\", name = \"ui-test-manifest\" }\r\nandroidx-compose-ui-test-junit4 = { group = \"androidx.compose.ui\", name = \"ui-test-junit4\" }\r\nandroidx-compose-material3 = { group = \"androidx.compose.material3\", name = \"material3\" }\r\nandroidx-ui = { group = \"androidx.compose.ui\", name = \"ui\", version.ref = \"ui\" }\r\nandroidx-navigation-compose = { group = \"androidx.navigation\", name = \"navigation-compose\", version.ref = \"navigationCompose\" }\r\nandroidx-navigation-runtime-ktx = { group = \"androidx.navigation\", name = \"navigation-runtime-ktx\", version.ref = \"navigationRuntimeKtx\" }\r\nandroidx-compose-runtime = { group = \"androidx.compose.runtime\", name = \"runtime\", version.ref = \"runtime\" }\r\nandroidx-compose-foundation = { group = \"androidx.compose.foundation\", name = \"foundation\", version.ref = \"foundation\" }\r\nprotolite-well-known-types = { group = \"com.google.firebase\", name = \"protolite-well-known-types\", version.ref = \"protoliteWellKnownTypes\" }\r\nandroidx-material3 = { group = \"androidx.compose.material3\", name = \"material3\", version.ref = \"material3\" }\r\nandroidx-room-common-jvm = { group = \"androidx.room\", name = \"room-common-jvm\", version.ref = \"roomCommonJvm\" }\r\nfirebase-appdistribution-gradle = { group = \"com.google.firebase\", name = \"firebase-appdistribution-gradle\", version.ref = \"firebaseAppdistributionGradle\" }\r\nandroidx-runtime = { group = \"androidx.compose.runtime\", name = \"runtime\", version.ref = \"runtimeVersion\" }\r\n\r\n[plugins]\r\nandroid-application = { id = \"com.android.application\", version.ref = \"agp\" }\r\nkotlin-android = { id = \"org.jetbrains.kotlin.android\", version.ref = \"kotlin\" }\r\nkotlin-compose = { id = \"org.jetbrains.kotlin.plugin.compose\", version.ref = \"kotlin\" }\r\n\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/gradle/libs.versions.toml b/gradle/libs.versions.toml
+--- a/gradle/libs.versions.toml	(revision 70d3a58dfb12fcd626542c7449e63c704e555a87)
++++ b/gradle/libs.versions.toml	(date 1773210845907)
+@@ -18,6 +18,9 @@
+ roomCommonJvm = "2.8.4"
+ firebaseAppdistributionGradle = "5.2.1"
+ runtimeVersion = "1.10.4"
++foundationVersion = "1.10.4"
++remoteCreationCore = "1.0.0-alpha05"
++uiText = "1.10.4"
+ 
+ [libraries]
+ androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+@@ -44,6 +47,9 @@
+ androidx-room-common-jvm = { group = "androidx.room", name = "room-common-jvm", version.ref = "roomCommonJvm" }
+ firebase-appdistribution-gradle = { group = "com.google.firebase", name = "firebase-appdistribution-gradle", version.ref = "firebaseAppdistributionGradle" }
+ androidx-runtime = { group = "androidx.compose.runtime", name = "runtime", version.ref = "runtimeVersion" }
++androidx-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundationVersion" }
++androidx-compose-remote-creation-core = { group = "androidx.compose.remote", name = "remote-creation-core", version.ref = "remoteCreationCore" }
++androidx-compose-ui-text = { group = "androidx.compose.ui", name = "ui-text", version.ref = "uiText" }
+ 
+ [plugins]
+ android-application = { id = "com.android.application", version.ref = "agp" }
