@@ -77,19 +77,24 @@ fun ProfileScreen(nav: NavController) {
         }
         Spacer(Modifier.height(12.dp))
 
-        // ประวัติการรักษา
-        ExpandableCard(title = "ประวัติการรักษา") {
-            HistoryScreen(userId = userId)
+        if(UserSession.role != "Doctor" && UserSession.role != "Nurse"){
+            // ประวัติการรักษา
+            ExpandableCard(title = "ประวัติการรักษา") {
+                HistoryScreen(userId = userId)
+            }
         }
+
 
         Spacer(Modifier.height(12.dp))
 
-        // รายการยาปัจจุบัน
-        ExpandableCard(title = "รายการยาปัจจุบัน") {
-            MedicineCard(userId = userId)
-        }
+        if(UserSession.role != "Doctor" && UserSession.role != "Nurse"){
+            // รายการยาปัจจุบัน
+            ExpandableCard(title = "รายการยาปัจจุบัน") {
+                MedicineCard(userId = userId)
+            }
 
-        Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(24.dp))
+        }
 
         ExpandableCard(title = "สมาชิกครอบครัว") {
             FamilySection(userId = userId)
@@ -97,11 +102,12 @@ fun ProfileScreen(nav: NavController) {
 
         Spacer(Modifier.height(12.dp))
 
-        ExpandableCard(title = "จัดการรายชื่อครอบครัว") {
-            FamilyMemberListView(userId = userId)
+        if (UserSession.role == "Nurse") {
+            ExpandableCard(title = "จัดการรายชื่อครอบครัว") {
+                FamilyMemberListView(userId = userId)
+            }
+            Spacer(Modifier.height(12.dp))
         }
-
-        Spacer(Modifier.height(12.dp))
 
         Row(
             modifier = Modifier
