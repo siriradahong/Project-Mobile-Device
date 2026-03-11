@@ -203,7 +203,7 @@ fun DoctorTreatmentScreen(nav: NavHostController, appointmentId: Int?, viewModel
                     val dia = patient?.blood_presure_dia?.toString() ?: "-"
                     val bpDisplay = if (sys != "-" || dia != "-") "$sys/$dia" else "-"
 
-                    VitalBox("BP", bpDisplay, Color.Red)
+                    VitalBox("BP", bpDisplay, Color.Black)
                     VitalBox("TP", patient?.temperature?.toString() ?: "-", Color.Black)
                     VitalBox("HG", patient?.height?.toString() ?: "-", Color.Black)
                     VitalBox("WG", patient?.weight?.toString() ?: "-", Color.Black)
